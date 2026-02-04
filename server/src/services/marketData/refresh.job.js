@@ -23,8 +23,14 @@ function toISODate(dateStr) {
 }
 
 // Stooq daily CSV endpoint, US stocks are typically <ticker>.us contentReference[oaicite:3]{index=3}
-function stooqCsvUrl(stooqSymbol) {
-  return `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSymbol)}&i=d`;
+function stooqCsvUrl(stooqSymbol, daysBack = 10) {
+  const today = new Date();
+  const d2 = today.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+  const past = new Date(today);
+  past.setDate(today.getDate() - daysBack);
+  const d1 = past.toISOString().slice(0, 10).replace(/-/g, "");
+
+  return `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSymbol)}&i=d&d1=${d1}&d2=${d2}`;
 }
 
 function parseStooqDailyCsv(csvText) {
@@ -131,7 +137,7 @@ export async function refreshOwnedAssetsBatch({ sleepMs = 1000 } = {}) {
         const stooqSymbol = asset.providerIds?.stooqSymbol;
         if (!stooqSymbol) throw new Error("Missing providerIds.stooqSymbol");
 
-        const url = stooqCsvUrl(stooqSymbol);
+        const url = stooqCsvUrl(stooqSymbol, 9);
         const resp = await axios.get(url, {
           responseType: "text",
           timeout: 30_000,

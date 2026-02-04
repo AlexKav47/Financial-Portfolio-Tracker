@@ -7,6 +7,12 @@ import { loadSettings, saveSettings } from "../../state/settingStore";
 import { useColorMode } from "../ui/color-mode";
 import SettingsDialog from "../settings/SettingsDialog.jsx";
 
+const currencyOptions = [
+  { baseCurrency: "USD", currencySymbol: "$" },
+  { baseCurrency: "EUR", currencySymbol: "€" },
+  { baseCurrency: "GBP", currencySymbol: "£" },
+];
+
 const tabs = [
   { label: "Main", path: "/dashboard" },
   { label: "Learning", path: "/learning" },
@@ -113,7 +119,7 @@ export default function TopNav() {
           });
 
           if (serverSettings.theme && serverSettings.theme !== colorMode) {
-            toggleColorMode(); k
+            toggleColorMode(); 
           }
         }}
       />

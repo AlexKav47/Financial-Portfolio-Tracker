@@ -21,6 +21,7 @@ import AllocationDonut from "../components/dashboard/AllocationDonut.jsx";
 import { getDashboardSummary } from "../api/dashboardApi.js";
 import { formatMoney } from "../utils/money";
 import { loadSettings } from "../state/settingStore";
+import DisplayChartPopUP from "../components/dashboard/DisplayChartPopUP.jsx";
 
 function AllocationSummaryTable({ rows, loading }) {
   return (
@@ -66,66 +67,75 @@ function AllocationSummaryTable({ rows, loading }) {
 }
 
 function HoldingsBigTable({ rows, loading }) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  const onOpenAsset = (r) => {
+    setSelected({
+      assetRefId: r.assetRefId,
+      symbol: r.currency,  // your "currency" field is actually symbol
+      type: r.type,
+      name: r.name,
+    });
+    setOpen(true);
+  };
+
   return (
-    <Table.ScrollArea borderWidth="1px" borderRadius="md">
-      <Table.Root size="sm" variant="line">
-        <Table.Header>
-          <Table.Row bg="bg.muted">
-            <Table.ColumnHeader>Currency</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="end">Balance</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="end">Avg Price</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="end">Cost Basis</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="end">Current Value</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="end">Total Profit</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="end">Share %</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
+    <>
+      <DisplayChartPopUP open={open} setOpen={setOpen} asset={selected} />
 
-        <Table.Body>
-          {loading ? (
-            <Table.Row>
-              <Table.Cell colSpan={7}>
-                <HStack py={8} justify="center" color="fg.muted">
-                  <Spinner size="sm" />
-                  <Text fontSize="sm">Loading...</Text>
-                </HStack>
-              </Table.Cell>
+      <Table.ScrollArea borderWidth="1px" borderRadius="md">
+        <Table.Root size="sm" variant="line">
+          <Table.Header>
+            <Table.Row bg="bg.muted">
+              <Table.ColumnHeader>Currency</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Amount</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Avg Price</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Cost Basis</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Current Value</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Total Profit</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Share %</Table.ColumnHeader>
             </Table.Row>
-          ) : rows.length === 0 ? (
-            <Table.Row>
-              <Table.Cell colSpan={7} py={10} textAlign="center" color="fg.muted">
-                No holdings yet.
-              </Table.Cell>
-            </Table.Row>
-          ) : (
-            rows.map((r) => (
-              <Table.Row key={r.key}>
-                <Table.Cell fontWeight="semibold">{r.currency}</Table.Cell>
-                <Table.Cell textAlign="end">{r.balance}</Table.Cell>
-                <Table.Cell textAlign="end">{r.avgPrice}</Table.Cell>
-                <Table.Cell textAlign="end">{r.costBasis}</Table.Cell>
-                <Table.Cell textAlign="end">{r.currentValue}</Table.Cell>
-                <Table.Cell textAlign="end">{r.totalProfit}</Table.Cell>
-                <Table.Cell textAlign="end">{r.sharePct}</Table.Cell>
+          </Table.Header>
+
+          <Table.Body>
+            {loading ? (
+              <Table.Row>
+                <Table.Cell colSpan={7}>
+                  <HStack py={8} justify="center" color="fg.muted">
+                    <Spinner size="sm" />
+                    <Text fontSize="sm">Loading...</Text>
+                  </HStack>
+                </Table.Cell>
               </Table.Row>
-            ))
-          )}
-        </Table.Body>
-
-        <Table.Footer>
-          <Table.Row>
-            <Table.Cell fontWeight="semibold">Total</Table.Cell>
-            <Table.Cell colSpan={4} />
-            <Table.Cell textAlign="end" fontWeight="semibold">
-              —
-            </Table.Cell>
-            <Table.Cell />
-          </Table.Row>
-        </Table.Footer>
-      </Table.Root>
-    </Table.ScrollArea>
+            ) : rows.length === 0 ? (
+              <Table.Row>
+                <Table.Cell colSpan={7} py={10} textAlign="center" color="fg.muted">
+                  No holdings yet.
+                </Table.Cell>
+              </Table.Row>
+            ) : (
+              rows.map((r) => (
+                <Table.Row key={r.key}>
+                  <Table.Cell fontWeight="semibold">
+                     <Button onClick={() => onOpenAsset(r)}>{r.currency}</Button>
+                  </Table.Cell>
+                  <Table.Cell textAlign="end">{r.balance}</Table.Cell>
+                  <Table.Cell textAlign="end">{r.avgPrice}</Table.Cell>
+                  <Table.Cell textAlign="end">{r.costBasis}</Table.Cell>
+                  <Table.Cell textAlign="end">{r.currentValue}</Table.Cell>
+                  <Table.Cell textAlign="end">{r.totalProfit}</Table.Cell>
+                  <Table.Cell textAlign="end">{r.sharePct}</Table.Cell>
+                </Table.Row>
+              ))
+            )}
+          </Table.Body>
+        </Table.Root>
+      </Table.ScrollArea>
+    </>
   );
 }
+
 
 export default function Dashboard() {
   const settings = useMemo(() => loadSettings(), []);
@@ -259,9 +269,6 @@ export default function Dashboard() {
           <Card p={6}>
             <HStack justify="space-between" mb={3}>
               <Heading size="sm">Allocation</Heading>
-              <Text fontSize="sm" color="fg.muted">
-                Stocks grouped and Crypto grouped here
-              </Text>
             </HStack>
 
             <AllocationSummaryTable rows={allocationRows} loading={state.loading} />
@@ -271,7 +278,7 @@ export default function Dashboard() {
         {/* BIG TABLE SECTION */}
         <Card p={6}>
           <HStack justify="space-between" align="center" mb={4}>
-            <Heading size="sm">Cash</Heading>
+            <Heading size="sm">Holdings</Heading>
 
             <HStack gap={2}>
               {/* Search */}

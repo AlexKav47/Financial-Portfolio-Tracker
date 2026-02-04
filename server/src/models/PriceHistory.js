@@ -17,7 +17,7 @@ const PriceHistorySchema = new mongoose.Schema(
     volume: { type: Number, default: null },
 
     currency: { type: String, default: "USD" },
-    source: { type: String, enum: ["stooq", "coingecko"], required: true },
+    source: { type: String, enum: ["stooq", "Yahoo"], required: true },
   },
   { timestamps: true }
 );
