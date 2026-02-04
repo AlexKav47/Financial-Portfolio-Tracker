@@ -71,14 +71,14 @@ function HoldingsBigTable({ rows, loading }) {
   const [selected, setSelected] = useState(null);
 
   const onOpenAsset = (r) => {
-    setSelected({
-      assetRefId: r.assetRefId,
-      symbol: r.currency,  // your "currency" field is actually symbol
-      type: r.type,
-      name: r.name,
-    });
-    setOpen(true);
-  };
+  setSelected({
+    assetRefId: r.assetRefId,
+    symbol: r.symbol, 
+    type: r.type,
+    name: r.name,
+  });
+  setOpen(true);
+};
 
   return (
     <>
@@ -117,9 +117,36 @@ function HoldingsBigTable({ rows, loading }) {
             ) : (
               rows.map((r) => (
                 <Table.Row key={r.key}>
-                  <Table.Cell fontWeight="semibold">
-                     <Button onClick={() => onOpenAsset(r)}>{r.currency}</Button>
-                  </Table.Cell>
+                  <Table.Cell>
+  <HStack
+    as="button"
+    onClick={() => onOpenAsset(r)}
+    gap={3}
+    px={2}
+    py={1}
+    borderRadius="md"
+    transition="all 0.2s"
+    _hover={{ bg: "bg.muted", cursor: "pointer" }}
+    group
+  >
+    <Stack gap={0} align="start">
+      <Text fontWeight="bold" fontSize="sm">
+        {r.currency}
+      </Text>
+      <Text fontSize="10px" color="fg.muted">
+        {r.name}
+      </Text>
+    </Stack>
+    
+    <Box 
+      opacity="0.3" 
+      _groupHover={{ opacity: "1" }} 
+      transition="opacity 0.2s"
+    >
+      <Search size={12} /> 
+    </Box>
+  </HStack>
+</Table.Cell>
                   <Table.Cell textAlign="end">{r.balance}</Table.Cell>
                   <Table.Cell textAlign="end">{r.avgPrice}</Table.Cell>
                   <Table.Cell textAlign="end">{r.costBasis}</Table.Cell>
@@ -198,14 +225,18 @@ export default function Dashboard() {
     })
     .map((r) => ({
       key: r.key,
-      currency: r.symbol,
+      assetRefId: r.assetRefId,   
+      symbol: r.symbol,           
+      name: r.name,
+      type: r.type,
+
+      currency: r.symbol, 
       balance: r.balance,
       avgPrice: formatMoney(r.avgPrice, settings.baseCurrency),
       costBasis: formatMoney(r.costBasis, settings.baseCurrency),
       currentValue: formatMoney(r.currentValue, settings.baseCurrency),
       totalProfit: formatMoney(r.totalProfit, settings.baseCurrency),
       sharePct: `${Number(r.sharePct || 0).toFixed(2)}%`,
-      type: r.type,
     }));
 }, [state.data, searchTerm, filterType, settings.baseCurrency]);
 

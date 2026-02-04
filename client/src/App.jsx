@@ -6,12 +6,14 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Learning from "./pages/Learning.jsx";
 import Income from "./pages/Income.jsx";
 import Assets from "./pages/Assets.jsx";
+import Hero from "./pages/Hero.jsx";
 
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Hero />} />
+      
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
 

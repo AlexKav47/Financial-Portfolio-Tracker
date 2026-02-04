@@ -9,6 +9,7 @@ import assetsRoutes from "./routes/asset.routes.js";
 import pricesRoutes from "./routes/prices.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import passwordRoutes from "./routes/password.routes.js";
+import priceHistoryRoutes from "./routes/pricehistory.routes.js";
 
 export function createApp() {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp() {
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/assets", assetsRoutes);
   app.use("/api/prices", pricesRoutes);
+  app.use("/api/price-history", priceHistoryRoutes);
 
   // Basic error handler
   app.use((err, req, res, next) => {

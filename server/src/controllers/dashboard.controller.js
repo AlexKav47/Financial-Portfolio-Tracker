@@ -64,24 +64,26 @@ export async function summary(req, res) {
   const totalProfit = computed.reduce((sum, r) => sum + r.gain, 0);
 
   // Share % per holding (big table rows)
-  const holdingsRows = computed
-    .map((r) => {
-      const sharePct = totalValue > 0 ? (r.currentValue / totalValue) * 100 : 0;
-      return {
-        key: r._id,
-        type: r.type,
-        symbol: r.symbol,
-        name: r.name,
-        currency: r.symbol, // matches your screenshot “Currency” column
-        balance: r.quantity,
-        avgPrice: r.avgBuyPrice,
-        costBasis: r.invested,
-        currentValue: r.currentValue,
-        totalProfit: r.gain,
-        sharePct: round2(sharePct),
-      };
-    })
-    .sort((a, b) => b.currentValue - a.currentValue);
+ const holdingsRows = computed
+  .map((r) => {
+    const sharePct = totalValue > 0 ? (r.currentValue / totalValue) * 100 : 0;
+    return {
+      key: r._id,                 // holding row id (fine)
+      assetRefId: r.assetRefId,   // ✅ ADD THIS (string ObjectId)
+      type: r.type,
+      symbol: r.symbol,
+      name: r.name,
+      currency: r.symbol,
+      balance: r.quantity,
+      avgPrice: r.avgBuyPrice,
+      costBasis: r.invested,
+      currentValue: r.currentValue,
+      totalProfit: r.gain,
+      sharePct: round2(sharePct),
+    };
+  })
+  .sort((a, b) => b.currentValue - a.currentValue);
+
 
   // Grouped (Stocks vs Crypto) - keep this for the right-side summary table
   const groupAgg = {
