@@ -75,7 +75,6 @@ export default function Hero() {
       position="relative"
     >
       {/* backdrop  */}
-      {/* subtle grid */}
       <Box
         position="absolute"
         inset="0"
@@ -180,15 +179,16 @@ export default function Hero() {
                 lineHeight="0.98"
                 fontSize={{ base: "44px", md: "60px" }}
               >
-                Track your wealth with{" "}
+                Learn to track your wealth with{" "}
                 <Box as="span" bgGradient={`linear(to-r, ${T.brand1}, ${T.brand0})`} bgClip="text">
                   clean, real metrics
                 </Box>
                 .
               </Heading>
               <Text color={T.text1} fontSize={{ base: "md", md: "lg" }} lineHeight="1.7" maxW="46ch">
-                A portfolio dashboard built for students and retail investors: unified holdings, allocation breakdown,
-                profit attribution, and performance analytics—without the clutter.
+                A portfolio dashboard built for novice Irish Investors, unified holdings, allocation breakdown,
+                profit attribution, performance analytics without the clutter and learning sections to improve
+                financial literacy.
               </Text>
             </Stack>
 
@@ -386,8 +386,7 @@ export default function Hero() {
                   Built for clarity, not noise
                 </Heading>
                 <Text color={T.text2} maxW="70ch">
-                  Your FYP tracker can stay professional-looking while still feeling modern. These sections are purely
-                  presentational—swap copy later.
+                  Learn to track your portfolio with features designed to give you real insights into your investments.
                 </Text>
               </Stack>
             </Flex>
@@ -412,30 +411,6 @@ export default function Hero() {
                 desc="Show equity curve, IRR, profit breakdowns, and KPIs in a way that’s actually readable."
               />
             </SimpleGrid>
-
-            <Separator my={7} borderColor={T.stroke} />
-
-            <Flex
-              align={{ base: "stretch", md: "center" }}
-              justify="space-between"
-              direction={{ base: "column", md: "row" }}
-              gap={4}
-            >
-              <HStack spacing={3} color={T.text2} fontSize="sm" flexWrap="wrap">
-                <HStack spacing={2}>
-                  <CheckCircle2 size={16} color={T.ok} />
-                  <Text>Fast setup</Text>
-                </HStack>
-                <HStack spacing={2}>
-                  <CheckCircle2 size={16} color={T.ok} />
-                  <Text>Hardcoded theme</Text>
-                </HStack>
-                <HStack spacing={2}>
-                  <CheckCircle2 size={16} color={T.ok} />
-                  <Text>Recharts-ready</Text>
-                </HStack>
-              </HStack>
-            </Flex>
           </Box>
         </Container>
       </Box>

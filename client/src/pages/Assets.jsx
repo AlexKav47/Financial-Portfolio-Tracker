@@ -358,7 +358,7 @@ export default function Assets() {
                     </Table.Row>
                   ) : (
                     holdings.map((h) => (
-                      <Table.Row key={h._id}>
+                      <Table.Row key={h._id} bg="none">
                         <Table.Cell fontWeight="bold">{h.symbol}</Table.Cell>
                         <Table.Cell textAlign="end">{h.quantity}</Table.Cell>
                         <Table.Cell textAlign="end">

@@ -1,15 +1,18 @@
-import { Box, Heading, Text } from "@chakra-ui/react";
+import { Heading, Text, Stack } from "@chakra-ui/react";
 import AppShell from "../components/layout/AppShell.jsx";
+import Card from "../components/ui/Card.jsx";
 
 export default function Income() {
   return (
     <AppShell>
-      <Box borderWidth="1px" borderRadius="lg" p={6} bg="white">
-        <Heading size="md" mb={2}>Income</Heading>
-        <Text color="gray.600">
-          Placeholder. This will track dividends and crypto staking rewards.
-        </Text>
-      </Box>
+      <Card>
+        <Stack gap={2}>
+          <Heading size="md">Income</Heading>
+          <Text color="fg.muted">
+            Placeholder. This will track dividends and crypto staking rewards.
+          </Text>
+        </Stack>
+      </Card>
     </AppShell>
   );
 }

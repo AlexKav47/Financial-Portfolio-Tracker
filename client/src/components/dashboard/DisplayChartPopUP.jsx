@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
-  Button,
   CloseButton,
   Dialog,
   HStack,
@@ -10,7 +9,7 @@ import {
   Stack,
   Text,
   SimpleGrid,
-  Icon as ChakraIcon
+  Icon as ChakraIcon,
 } from "@chakra-ui/react";
 import { TrendingUp, ShieldCheck, Target } from "lucide-react";
 import {
@@ -23,10 +22,9 @@ import {
   Area,
   ComposedChart,
 } from "recharts";
-
 import { getLastPriceHistory } from "../../api/priceHistoryAPI";
 
-// -------------------- helpers --------------------
+// helpers 
 function linearRegression(yVals) {
   const n = yVals.length;
   const xVals = Array.from({ length: n }, (_, i) => i);
@@ -43,7 +41,7 @@ function linearRegression(yVals) {
   const ssRes = yVals.reduce((acc, y, i) => acc + (y - yHat[i]) ** 2, 0);
   const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
   const next = slope * n + intercept;
-  return { slope, intercept, yHat, r2, next };
+  return { slope, yHat, r2, next };
 }
 
 function formatDateLabel(label) {
@@ -52,14 +50,9 @@ function formatDateLabel(label) {
   return Number.isNaN(d.getTime()) ? label : d.toLocaleDateString(undefined, { month: "short", day: "2-digit" });
 }
 
-// UPDATED: Now defaults to Euro
 function formatCurrency(v, currency = "EUR") {
   if (v == null || Number.isNaN(v)) return "—";
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 2,
-  }).format(Number(v));
+  return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(Number(v));
 }
 
 function confidenceLabel(r2) {
@@ -68,18 +61,38 @@ function confidenceLabel(r2) {
   return "Low";
 }
 
-// -------------------- UI Components --------------------
-function StatCard({ title, value, subValue, icon, color }) {
+function StatCard({ title, value, subValue, icon, accent }) {
+  const accentColor = accent === "success" ? "green.500" : accent === "danger" ? "red.500" : accent;
+
   return (
-    <Box p={5} borderRadius="xl" border="1px solid" borderColor="border.muted" bg="white" boxShadow="sm">
+    <Box
+      p={5}
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="border.subtle"
+      bg="bg.panel" 
+    >
       <HStack gap={4}>
-        <Box p={2} bg={`${color}.50`} color={`${color}.500`} borderRadius="lg">
-          <ChakraIcon as={icon} size="24px" />
+        <Box
+          p={2}
+          borderRadius="lg"
+          bg="bg.muted"
+          border="1px solid"
+          borderColor="border.subtle"
+          color={accentColor}
+        >
+          <ChakraIcon as={icon} boxSize="20px" />
         </Box>
         <Stack gap={0}>
-          <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase">{title}</Text>
-          <Text fontSize="xl" fontWeight="bold">{value}</Text>
-          <Text fontSize="xs" color="gray.400">{subValue}</Text>
+          <Text fontSize="xs" fontWeight="bold" color="fg.muted" textTransform="uppercase" letterSpacing="widest">
+            {title}
+          </Text>
+          <Text fontSize="xl" fontWeight="900" color="fg.default">
+            {value}
+          </Text>
+          <Text fontSize="xs" color="fg.subtle">
+            {subValue}
+          </Text>
         </Stack>
       </HStack>
     </Box>
@@ -95,16 +108,14 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
     let mounted = true;
     async function load() {
       if (!open || !asset?.assetRefId) return;
+      setErr("");
       setLoading(true);
       try {
         const { res, data } = await getLastPriceHistory(asset.assetRefId, 5);
         if (!mounted) return;
-        if (!res.ok) {
-          setErr(data?.error || "Failed to load price history.");
-        } else {
-          setRows(Array.isArray(data?.rows) ? data.rows : []);
-        }
-      } catch (e) {
+        if (!res.ok) setErr(data?.error || "Failed to load price history.");
+        else setRows(Array.isArray(data?.rows) ? data.rows : []);
+      } catch {
         setErr("Network error occurred.");
       } finally {
         if (mounted) setLoading(false);
@@ -118,27 +129,10 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
     const closes = rows.map((r) => r.close).filter((v) => typeof v === "number");
     if (closes.length < 2) return null;
     const { slope, r2, yHat, next } = linearRegression(closes);
-    
-    const chartData = rows.map((r, i) => ({
-      date: r.date,
-      close: r.close,
-      trend: yHat[i],
-    }));
-
-    chartData.push({ 
-      date: "Next", 
-      close: null, 
-      trend: next, 
-    });
-
-    return { 
-      chartData, 
-      slope, 
-      r2, 
-      next, 
-      lastClose: closes[closes.length - 1], 
-      delta: next - closes[closes.length - 1] 
-    };
+    const chartData = rows.map((r, i) => ({ date: r.date, close: r.close, trend: yHat[i] }));
+    chartData.push({ date: "Next", close: next, trend: next });
+    const last = closes[closes.length - 1];
+    return { chartData, slope, r2, next, lastClose: last, delta: next - last };
   }, [rows]);
 
   return (
@@ -146,98 +140,142 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
-          <Dialog.Content bg="#F9FAFB">
-            <Dialog.Header borderBottomWidth="1px" bg="white" pb={4}>
+          <Dialog.Content bg="bg.canvas" color="fg.default">
+            <Dialog.Header borderBottomWidth="1px" borderColor="border.subtle" bg="bg.panel" pb={4}>
               <HStack justify="space-between">
                 <Stack gap={0}>
-                  <Dialog.Title fontSize="2xl">{asset?.symbol} Performance</Dialog.Title>
-                  <Text color="gray.500">{asset?.name || "Price Forecast"}</Text>
+                  <Dialog.Title style={{ fontSize: "22px", fontWeight: 900 }}>
+                    {asset?.symbol} Performance
+                  </Dialog.Title>
+                  <Text color="fg.muted">{asset?.name || "Price Forecast"}</Text>
                 </Stack>
-                <Dialog.CloseTrigger asChild><CloseButton /></Dialog.CloseTrigger>
+                <Dialog.CloseTrigger asChild>
+                  <CloseButton />
+                </Dialog.CloseTrigger>
               </HStack>
             </Dialog.Header>
 
             <Dialog.Body p={6}>
               {loading ? (
-                <Stack align="center" py={20}><Spinner size="xl" color="blue.500" /><Text>Generating Chart...</Text></Stack>
+                <Stack align="center" py={20}>
+                  <Spinner size="xl" />
+                  <Text color="fg.muted">Generating chart…</Text>
+                </Stack>
+              ) : err ? (
+                <Box textAlign="center" py={20}>
+                  <Text color="fg.error" fontWeight="700">{err}</Text>
+                </Box>
               ) : rows.length > 0 && computed ? (
                 <Stack gap={6}>
                   <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-                    <StatCard 
-                      title="Market Trend" 
-                      value={computed.slope > 0 ? "Upward" : "Downward"} 
+                    <StatCard
+                      title="Market Trend"
+                      value={computed.slope > 0 ? "Upward" : "Downward"}
                       subValue="Based on last 5 days"
                       icon={TrendingUp}
-                      color={computed.slope > 0 ? "green" : "red"}
+                      accent={computed.slope > 0 ? "success" : "danger"}
                     />
-                    <StatCard 
-                      title="Reliability" 
-                      value={confidenceLabel(computed.r2)} 
+                    <StatCard
+                      title="Reliability"
+                      value={confidenceLabel(computed.r2)}
                       subValue="Trend consistency"
                       icon={ShieldCheck}
-                      color="blue"
+                      accent="blue.500"
                     />
-                    <StatCard 
-                      title="Next Price Target" 
-                      value={formatCurrency(computed.next)} 
+                    <StatCard
+                      title="Next Target"
+                      value={formatCurrency(computed.next)}
                       subValue="Calculated forecast"
                       icon={Target}
-                      color="purple"
+                      accent="purple.500"
                     />
                   </SimpleGrid>
 
-                  {/* FIXED HEIGHT BOX */}
-                  <Box height="500px" width="100%" bg="white" p={6} borderRadius="xl" border="1px solid" borderColor="gray.200" boxShadow="sm">
+                  <Box
+                    h={{ base: "420px", md: "520px" }}
+                    w="100%"
+                    bg="bg.panel"
+                    p={6}
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={computed.chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                         <defs>
-                          <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3182ce" stopOpacity={0.2}/>
-                            <stop offset="95%" stopColor="#3182ce" stopOpacity={0}/>
+                          <linearGradient id="closeFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chakra-colors-cyan-500)" stopOpacity={0.3} />
+                            <stop offset="85%" stopColor="var(--chakra-colors-cyan-500)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                        <XAxis 
-                          dataKey="date" 
-                          tickFormatter={formatDateLabel} 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{fill: '#718096'}}
+
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          vertical={false} 
+                          stroke="var(--chakra-colors-border)" 
+                        />
+                        
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={formatDateLabel}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "var(--chakra-colors-fg)", fontSize: 12 }}
                           dy={10}
                         />
-                        <YAxis 
-                          domain={['auto', 'auto']} 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tickFormatter={(v) => `€${v}`}
-                          tick={{fill: '#718096'}}
+                        
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "var(--chakra-colors-fg)", fontSize: 12 }}
                         />
-                        <Tooltip 
+                        
+                        <Tooltip
                           formatter={(value) => [formatCurrency(value), "Price"]}
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          contentStyle={{
+                            backgroundColor: "var(--chakra-colors-bg-panel)",
+                            border: "1px solid var(--chakra-colors-border-subtle)",
+                            borderRadius: "12px",
+                            color: "var(--chakra-colors-fg-default)",
+                            boxShadow: "var(--chakra-shadows-md)",
+                          }}
+                          itemStyle={{ color: "var(--chakra-colors-fg-default)" }}
+                          labelStyle={{ color: "var(--chakra-colors-fg-muted)", marginBottom: "4px" }}
                         />
-                        <Area type="monotone" dataKey="close" stroke="none" fill="url(#colorClose)" />
+                        
+                        <Area 
+                          type="monotone" 
+                          dataKey="close" 
+                          stroke="none" 
+                          fill="url(#closeFill)" 
+                          activeDot={false}
+                        />
+                        
                         <Line 
                           type="monotone" 
                           dataKey="close" 
-                          stroke="#3182ce" 
-                          strokeWidth={4} 
-                          dot={{ r: 6, fill: "#3182ce", strokeWidth: 2, stroke: "#fff" }} 
+                          stroke="var(--chakra-colors-cyan-500)" 
+                          strokeWidth={3} 
+                          dot={false} 
                         />
+                        
                         <Line 
                           type="monotone" 
                           dataKey="trend" 
-                          stroke="#A0AEC0" 
+                          stroke="var(--chakra-colors-fg-muted)" 
                           strokeDasharray="5 5" 
                           strokeWidth={2} 
                           dot={false} 
+                          opacity={0.4}
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </Box>
                 </Stack>
               ) : (
-                <Box textAlign="center" py={20}><Text>No data found for this asset.</Text></Box>
+                <Box textAlign="center" py={20}>
+                  <Text color="fg.muted">No data found for this asset.</Text>
+                </Box>
               )}
             </Dialog.Body>
           </Dialog.Content>
