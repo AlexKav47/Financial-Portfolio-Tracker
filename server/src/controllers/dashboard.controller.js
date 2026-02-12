@@ -62,6 +62,7 @@ export async function summary(req, res) {
   const totalValue = computed.reduce((sum, r) => sum + r.currentValue, 0);
   const totalInvested = computed.reduce((sum, r) => sum + r.invested, 0);
   const totalProfit = computed.reduce((sum, r) => sum + r.gain, 0);
+  const totalReturnPct = totalInvested > 0 ? round2((totalProfit / totalInvested) * 100) : 0;
 
   // Share % per holding (big table rows)
  const holdingsRows = computed
@@ -146,7 +147,7 @@ export async function summary(req, res) {
     kpis: {
       value: round2(totalValue),
       totalProfit: round2(totalProfit),
-      irr: null,
+      totalReturnPct,
       passiveIncome: null,
     },
 

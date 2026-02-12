@@ -8,7 +8,8 @@ const router = express.Router();
 router.get("/:assetRefId", async (req, res) => {
   try {
     const { assetRefId } = req.params;
-    const limit = Math.min(parseInt(req.query.limit || "5", 10), 50);
+    const raw = Number.parseInt(req.query.limit ?? "30", 10);
+    const limit = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 365) : 30;
 
     if (!mongoose.Types.ObjectId.isValid(assetRefId)) {
       return res.status(400).json({ error: "Invalid assetRefId" });

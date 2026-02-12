@@ -287,13 +287,30 @@ export default function Dashboard() {
   }, []);
 
   const kpis = state.data?.kpis || {};
-  const valueText = state.loading ? "—" : formatMoney(kpis.value, settings.baseCurrency);
-  const profitText = state.loading ? "—" : kpis.totalProfit == null ? "—" : formatMoney(kpis.totalProfit, settings.baseCurrency);
+
+const valueText = state.loading ? "—" : formatMoney(kpis.value, settings.baseCurrency);
+
+const profitText =
+  state.loading ? "—" : kpis.totalProfit == null ? "—" : formatMoney(kpis.totalProfit, settings.baseCurrency);
+
+const totalReturnText =
+  state.loading
+    ? "—"
+    : kpis.totalReturnPct == null
+      ? "—"
+      : `${Number(kpis.totalReturnPct).toFixed(2)}%`;
+
 
   return (
     <AppShell>
       <Stack gap={4}>
-        
+        <Box>
+          <Heading size="md" mb={2}>Dashboard</Heading>
+          <Text color="fg.muted">
+            Monitor your portfolio's performance, allocation, and key metrics at a glance. Click on any asset to view detailed charts and insights.
+          </Text>
+        </Box> 
+
         {/* HELP BANNER */}
         <Box 
           bg="blue.900/10" 
@@ -332,11 +349,16 @@ export default function Dashboard() {
             />
           </Box>
           <Box flex="1" minW="220px">
-            <KpiCard 
-              title={<HStack gap={0}><Text>IRR</Text><InfoTooltip label="Internal Rate of Return: The annualized return of your investments." /></HStack>} 
-              value="—" 
-              isLoading={false} 
-            />
+            <KpiCard
+                title={
+                  <HStack gap={0}>
+                    <Text>Total Return %</Text>
+                    <InfoTooltip label="Total Profit ÷ Total Invested." />
+                  </HStack>
+                }
+                value={totalReturnText}
+                isLoading={state.loading}
+              />
           </Box>
           <Box flex="1" minW="220px">
             <KpiCard 

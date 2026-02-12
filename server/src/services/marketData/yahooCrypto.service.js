@@ -17,7 +17,7 @@ function toISODateFromUnixSeconds(sec) {
 export async function fetchYahooCryptoDailyHistory(yahooSymbol) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
     yahooSymbol
-  )}?interval=1d&range=5d`;
+  )}?interval=1d&range=30d`;
 
   const res = await axios.get(url, {
     timeout: 30_000,

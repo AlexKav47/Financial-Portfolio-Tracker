@@ -3,13 +3,13 @@ import { User } from "../models/User.js";
 export async function getMySettings(req, res) {
   const userId = req.user.userId;
 
-  const user = await User.findById(userId).select("settings email").lean();
+  const user = await User.findById(userId).select("settings emailLower").lean();
   if (!user) return res.status(404).json({ error: "User not found" });
 
   res.json({
     ok: true,
     settings: user.settings || { theme: "light", currency: "EUR" },
-    email: user.email,
+    email: user.emailLower || "",
   });
 }
 

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Flex, HStack, Button, Tabs, Text, Menu, } from "@chakra-ui/react";
-import { ChevronDown, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
 import { logout } from "../../api/authApi";
 import { loadSettings, saveSettings } from "../../state/settingStore";
 import { useColorMode } from "../ui/color-mode";
@@ -94,26 +94,6 @@ export default function TopNav() {
           <SettingsIcon size={16} />
           <Text ml={2} display={{ base: "none", md: "inline" }}>Settings</Text>
         </Button>
-
-        <Menu.Root>
-          <Menu.Trigger asChild>
-            <Button variant="ghost" size="sm">
-              <Text>Account</Text>
-              <ChevronDown size={14} />
-            </Button>
-          </Menu.Trigger>
-
-          <Menu.Content minW="200px">
-            <Menu.Item
-              value="logout"
-              color="fg.error"
-              onClick={onLogout}
-            >
-              <LogOut size={14} />
-              Logout
-            </Menu.Item>
-          </Menu.Content>
-        </Menu.Root>
       </HStack>
 
       <SettingsDialog

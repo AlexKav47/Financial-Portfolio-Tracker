@@ -295,7 +295,7 @@ export default function Assets() {
                   ? "Loading..."
                   : prefillPrice != null
                   ? formatMoney(prefillPrice, currency)
-                  : "N/A"}
+                  : "None"}
               </Text>
             </Box>
 

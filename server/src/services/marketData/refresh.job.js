@@ -6,6 +6,14 @@ import { PriceHistory } from "../../models/PriceHistory.js";
 import { LatestPrice } from "../../models/LatestPrice.js";
 import { fetchYahooCryptoDailyHistory } from "./yahooCrypto.service.js";
 
+/**
+ * Refresh owned assets:
+ * - Only refresh assets actually owned (distinct assetRefId in holdings)
+ * - Stocks: fetch Stooq daily CSV over a configurable backfill window
+ * - Crypto: fetch Yahoo daily history over a configurable backfill window
+ * - Upsert into PriceHistory (per-day unique constraint) and LatestPrice
+ */
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -22,10 +30,14 @@ function toISODate(dateStr) {
   return s;
 }
 
-// Stooq daily CSV endpoint, US stocks are typically <ticker>.us contentReference[oaicite:3]{index=3}
-function stooqCsvUrl(stooqSymbol, daysBack = 10) {
+/**
+ * Stooq daily CSV endpoint.
+ * NOTE: daysBack is CALENDAR days. Stocks will only include trading days.
+ */
+function stooqCsvUrl(stooqSymbol, daysBack) {
   const today = new Date();
   const d2 = today.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+
   const past = new Date(today);
   past.setDate(today.getDate() - daysBack);
   const d1 = past.toISOString().slice(0, 10).replace(/-/g, "");
@@ -50,7 +62,6 @@ function parseStooqDailyCsv(csvText) {
       const volume = toNum(r.Volume ?? r.VOLUME ?? r.volume);
 
       if (!date || close == null) return null;
-
       return { date, open, high, low, close, volume };
     })
     .filter(Boolean);
@@ -61,6 +72,7 @@ function buildPriceHistoryOps(asset, rows, source, currency) {
     updateOne: {
       filter: { assetRefId: asset._id, date: r.date },
       update: {
+        // immutable fields only on first insert
         $setOnInsert: {
           assetRefId: asset._id,
           type: asset.type,
@@ -69,6 +81,7 @@ function buildPriceHistoryOps(asset, rows, source, currency) {
           source,
           currency,
         },
+        // price fields can be refreshed without conflict
         $set: {
           open: r.open ?? null,
           high: r.high ?? null,
@@ -82,7 +95,9 @@ function buildPriceHistoryOps(asset, rows, source, currency) {
   }));
 }
 
+
 function buildLatestPriceOp(asset, latestRow, source, currency) {
+  // treat as-of as midnight UTC of the trading/day bar
   const asOf = new Date(`${latestRow.date}T00:00:00Z`);
 
   return {
@@ -104,19 +119,25 @@ function buildLatestPriceOp(asset, latestRow, source, currency) {
   };
 }
 
+function sortByDateAsc(rows) {
+  return rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
 /**
- * Batch refresh:
- * - Only assets that are actually owned (distinct assetRefId in holdings)
- * - Stocks: download Stooq CSV, parse with csv-parse
- * - Crypto: fetch Yahoo chart daily history, normalize
- * - bulkWrite to PriceHistory and LatestPrice
- * - 1 second sleep between assets
+ * Batch refresh owned assets
+ *
+ * Options:
+ * - sleepMs: throttle between assets
+ * - stockCalendarBackfillDays: calendar-day window to fetch from Stooq
+ *   (use ~45 calendar days to get ~30 US trading days)
+ * - cryptoCalendarBackfillDays: calendar-day window to fetch from Yahoo for crypto
  */
-export async function refreshOwnedAssetsBatch({ sleepMs = 1000 } = {}) {
-  // Only assets users actually own
-  const assetRefIds = await Holding.distinct("assetRefId", {
-    assetRefId: { $ne: null },
-  });
+export async function refreshOwnedAssetsBatch({
+  sleepMs = 1000,
+  stockCalendarBackfillDays = 45, // ~30 trading days
+  cryptoCalendarBackfillDays = 30, // crypto trades daily
+} = {}) {
+  const assetRefIds = await Holding.distinct("assetRefId", { assetRefId: { $ne: null } });
 
   if (!assetRefIds.length) {
     return { ok: 0, fail: 0, total: 0, note: "No owned assets (assetRefId missing in holdings)" };
@@ -137,7 +158,9 @@ export async function refreshOwnedAssetsBatch({ sleepMs = 1000 } = {}) {
         const stooqSymbol = asset.providerIds?.stooqSymbol;
         if (!stooqSymbol) throw new Error("Missing providerIds.stooqSymbol");
 
-        const url = stooqCsvUrl(stooqSymbol, 9);
+        // IMPORTANT CHANGE: fetch a bigger window so DB has enough history
+        const url = stooqCsvUrl(stooqSymbol, stockCalendarBackfillDays);
+
         const resp = await axios.get(url, {
           responseType: "text",
           timeout: 30_000,
@@ -146,30 +169,35 @@ export async function refreshOwnedAssetsBatch({ sleepMs = 1000 } = {}) {
 
         rows = parseStooqDailyCsv(resp.data);
         if (!rows.length) throw new Error("Stooq CSV parsed but no rows");
+
         source = "stooq";
         currency = "USD";
       } else if (asset.type === "crypto") {
         const yahooSymbol = asset.providerIds?.yahooSymbol;
         if (!yahooSymbol) throw new Error("Missing providerIds.yahooSymbol (e.g. BTC-USD)");
 
-        rows = await fetchYahooCryptoDailyHistory(yahooSymbol);
+        // RECOMMENDED: update fetchYahooCryptoDailyHistory to accept daysBack.
+        // Backward-compatible: if your function ignores the 2nd arg, it won't break.
+        rows = await fetchYahooCryptoDailyHistory(yahooSymbol, cryptoCalendarBackfillDays);
         if (!rows.length) throw new Error("Yahoo history returned no rows");
-        source = "yahoo";
+
+        // IMPORTANT: match your Mongoose enum ("Yahoo" not "yahoo") unless you change the schema enum.
+        source = "Yahoo";
         currency = "USD";
       } else {
         throw new Error(`Unsupported asset type: ${asset.type}`);
       }
 
-      rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      sortByDateAsc(rows);
       const latest = rows[rows.length - 1];
 
-      // Bulk upsert PriceHistory
+      // Upsert PriceHistory
       const phOps = buildPriceHistoryOps(asset, rows, source, currency);
       if (phOps.length) {
         await PriceHistory.bulkWrite(phOps, { ordered: false });
       }
 
-      // Bulk upsert LatestPrice
+      // Upsert LatestPrice
       await LatestPrice.bulkWrite([buildLatestPriceOp(asset, latest, source, currency)], {
         ordered: false,
       });
@@ -177,12 +205,17 @@ export async function refreshOwnedAssetsBatch({ sleepMs = 1000 } = {}) {
       ok++;
     } catch (e) {
       fail++;
-      console.error(`[batch-refresh] ${asset.type}:${asset.symbol} failed -> ${e.message}`);
+      console.error(`[batch-refresh] ${asset?.type || "?"}:${asset?.symbol || "?"} failed -> ${e.message}`);
     }
 
-    // Sleep between assets to reduce blocking
     if (sleepMs > 0) await sleep(sleepMs);
   }
 
-  return { ok, fail, total: assets.length };
+  return {
+    ok,
+    fail,
+    total: assets.length,
+    stockCalendarBackfillDays,
+    cryptoCalendarBackfillDays,
+  };
 }

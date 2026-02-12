@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { Button, Dialog, HStack, Input, NativeSelect, Stack, Text, Alert, Separator, } from "@chakra-ui/react";
+import { 
+  Button, Dialog, HStack, Input, NativeSelect, 
+  Stack, Text, Alert, Separator, 
+} from "@chakra-ui/react";
 import Card from "../ui/Card.jsx";
 import { getMySettings, updateMySettings } from "../../api/settingsApi.js";
 import { changePassword } from "../../api/passwordApi.js";
+import { LogOut } from "lucide-react";
 
 export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
   const [loading, setLoading] = useState(false);
@@ -19,7 +23,6 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
 
   useEffect(() => {
     if (!open) return;
-
     let mounted = true;
     async function load() {
       setError("");
@@ -33,30 +36,32 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
         return;
       }
 
+      // Ensure this matches your backend response mapping (emailLower -> email)
       setEmail(data?.email || "");
       setTheme(data?.settings?.theme || "dark");
       setCurrency(data?.settings?.currency || "EUR");
     }
-
     load();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [open]);
+
+  // --- LOGOUT LOGIC ---
+  const handleLogout = () => {
+    // Clear your storage (Token/Session)
+    localStorage.removeItem("token"); 
+    // Redirect to login page
+    window.location.href = "/login";
+  };
 
   async function onSaveSettings() {
     setError("");
     setSaving(true);
-
     const { res, data } = await updateMySettings({ theme, currency });
-
     setSaving(false);
     if (!res.ok) {
       setError(data?.error || "Failed to save settings.");
       return;
     }
-
-    // Let parent update local settings store
     onUpdated?.(data.settings);
     onOpenChange(false);
   }
@@ -64,15 +69,12 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
   async function onChangePassword() {
     setError("");
     setChangingPw(true);
-
     const { res, data } = await changePassword({ currentPassword, newPassword });
-
     setChangingPw(false);
     if (!res.ok) {
       setError(data?.error || "Failed to change password.");
       return;
     }
-
     setCurrentPassword("");
     setNewPassword("");
   }
@@ -104,6 +106,7 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
             ) : null}
 
             <Stack gap={4}>
+              {/* Theme & Currency Fields stay here */}
               <Stack gap={2}>
                 <Text fontSize="sm" fontWeight="medium">Theme</Text>
                 <NativeSelect.Root>
@@ -131,33 +134,28 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
                     <option value="GBP">GBP</option>
                   </NativeSelect.Field>
                 </NativeSelect.Root>
-                <Text fontSize="xs" color="fg.muted">
-                  This changes formatting (€, $, £). It does not convert FX rates.
-                </Text>
               </Stack>
 
               <Separator />
 
+              {/* Password Fields */}
               <Stack gap={2}>
                 <Text fontSize="sm" fontWeight="medium">Change Password</Text>
-
                 <Input
                   type="password"
                   placeholder="Current password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  disabled={loading}
                 />
                 <Input
                   type="password"
                   placeholder="New password (min 8 chars)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={loading}
                 />
-
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={onChangePassword}
                   loading={changingPw}
                   disabled={!currentPassword || newPassword.length < 8}
@@ -166,13 +164,30 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
                 </Button>
               </Stack>
 
+              <Separator />
+
+              <Stack gap={2} align="center">
+                <Text fontSize="sm" fontWeight="medium" color="red.500">
+                  Danger Zone
+                </Text>
+                  <Button
+                    variant="ghost"
+                    colorPalette="red"
+                    onClick={handleLogout}
+                    size="sm"
+                  > 
+                  <LogOut size={14} />
+                    Log Out
+                  </Button>
+              </Stack>
+
               <HStack justify="flex-end" pt={2}>
                 <Button
                   onClick={onSaveSettings}
                   loading={saving}
                   disabled={loading}
                 >
-                  Save
+                  Save Changes
                 </Button>
               </HStack>
             </Stack>

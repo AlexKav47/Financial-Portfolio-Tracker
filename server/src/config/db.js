@@ -8,7 +8,7 @@ export async function connectDb() {
 
   // If we are in development mode and no URI is provided
   if (process.env.NODE_ENV === "test" || !uri) {
-    console.log("Local mode detected: Starting In-Memory MongoDB...");
+    console.log("Local mode Starting In-Memory MongoDB");
     
     mongod = await MongoMemoryServer.create();
     uri = mongod.getUri(); 
