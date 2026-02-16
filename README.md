@@ -11,10 +11,10 @@ A full-stack portfolio dashboard for beginner Irish investors: unified holdings,
 - Asset performance popup (30-day chart + trend line + projection)
 
 ### Holdings & assets
-- Add/delete holdings (stocks + crypto)
+- Add/delete holdings for stocks and crypto
 - Asset master lookup for symbol/name/type
 - LatestPrice + PriceHistory persistence
-- Rolling window retention (prunes old history)
+- Rolling window retention by pruneing old history
 
 ### Income tracking
 - Track dividend and staking income entries
@@ -22,14 +22,14 @@ A full-stack portfolio dashboard for beginner Irish investors: unified holdings,
 - Monthly + YTD summary KPIs
 
 ### Security 
-- HttpOnly cookie auth (access + refresh tokens)
+- HttpOnly cookie auth (access and refresh tokens)
 - CORS locked to allowed origins
 - Helmet + rate limiting + sanitization middleware (server)
 - Password hashing (bcrypt)
 
 ## Tech Stack
 **Frontend:** React + Vite, Chakra UI, Recharts  
-**Backend:** Node.js + Express (ESM)  
-**Database:** MongoDB (Atlas recommended)  
-**Process:** PM2 + Nginx (Hetzner deployment)  
-**Market data:** Stooq (stocks), Yahoo Finance (crypto)
+**Backend:** Node.js + Express 
+**Database:** MongoDB Atlas  
+**Process:** PM2 Hetzner deployment 
+**Market data:** Stooq for stocks and Yahoo Finance for crypto
