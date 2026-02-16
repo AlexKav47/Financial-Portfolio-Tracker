@@ -28,9 +28,6 @@ async function start() {
 
     const app = createApp();
 
-    // ✅ Scheduler guard:
-    // - In production, only run if you explicitly enable it (prevents duplicate jobs if you scale to 2+ instances)
-    // - In dev, you can turn it on with RUN_SCHEDULER=true
     if (RUN_SCHEDULER) {
       startScheduler();
       console.log("[boot] Scheduler started (RUN_SCHEDULER=true)");
@@ -51,7 +48,7 @@ async function start() {
   }
 }
 
-// ✅ Crash hard on unhandled async failures (prevents “zombie server” state)
+// Crash hard on unhandled async failures prevents zombie server state
 process.on("unhandledRejection", (err) => {
   console.error("[process] unhandledRejection:", err);
   process.exit(1);

@@ -1,19 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  Separator,
-  Heading,
-  HStack,
-  Input,
-  Spinner,
-  Stack,
-  Text,
-  Table,
-  List,
-  Alert,
-  NativeSelect,
-} from "@chakra-ui/react";
+import { Box, Button, Separator, Heading, HStack, Input, Spinner, Stack, Text, Table, List, Alert, NativeSelect } from "@chakra-ui/react";
 import AppShell from "../components/layout/AppShell.jsx";
 import Card from "../components/ui/Card.jsx";
 import { searchAssets } from "../api/assetApi.js";
@@ -27,7 +13,7 @@ export default function Assets() {
   const currency = settings.baseCurrency; 
 
   // Form State
-  const [type, setType] = useState("stock"); // "stock" | "crypto"
+  const [type, setType] = useState("stock"); 
   const [q, setQ] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [searchBusy, setSearchBusy] = useState(false);
@@ -70,7 +56,6 @@ export default function Assets() {
     setLatestBusy(false);
   }
 
-  // Type switch reset search + selection so user doesn't see mixed results
   function onTypeChange(e) {
     const next = e.target.value;
     setType(next);

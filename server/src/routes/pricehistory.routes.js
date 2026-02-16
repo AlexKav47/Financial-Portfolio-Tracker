@@ -6,17 +6,13 @@ const router = express.Router();
 
 /**
  * GET /api/price-history/:assetRefId?limit=30
- *
- * Returns the most recent N rows for an asset, ordered ASC by date (for charts).
- * Notes:
- * - We query DESC (fast for "most recent"), then reverse to ASC for chart consumption.
- * - limit is clamped to [1..365].
+ * Returns the most recent N rows for an asset, ordered ASC by date for charts
  */
 router.get("/:assetRefId", async (req, res) => {
   try {
     const { assetRefId } = req.params;
 
-    // limit query param (default 30)
+    // limit query param default 30
     const raw = Number.parseInt(req.query.limit ?? "30", 10);
     const limit = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 365) : 30;
 
@@ -25,13 +21,13 @@ router.get("/:assetRefId", async (req, res) => {
       return res.status(400).json({ error: "Invalid assetRefId" });
     }
 
-    // Most recent first, then reverse to ascending for chart
+    // Most recent first then reverse to ascending for chart
     const rows = await PriceHistory.find({ assetRefId })
       .sort({ date: -1 })
       .limit(limit)
       .lean();
 
-    const asc = rows.slice().reverse(); // don't mutate rows in place
+    const asc = rows.slice().reverse(); 
 
     return res.json({
       assetRefId,

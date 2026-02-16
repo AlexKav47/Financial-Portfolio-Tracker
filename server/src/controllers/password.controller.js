@@ -9,6 +9,7 @@ export async function changePassword(req, res) {
     return res.status(400).json({ error: "currentPassword and newPassword are required" });
   }
 
+  // Same 8 char rule as registration
   if (String(newPassword).length < 8) {
     return res.status(400).json({ error: "New password must be at least 8 characters" });
   }
@@ -19,6 +20,7 @@ export async function changePassword(req, res) {
   const ok = await bcrypt.compare(String(currentPassword), user.passwordHash);
   if (!ok) return res.status(401).json({ error: "Current password is incorrect" });
 
+  // Rehashing the new one with a fresh salt
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash(String(newPassword), salt);
 

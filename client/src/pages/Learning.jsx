@@ -1,17 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Heading,
-  HStack,
-  Input,
-  Separator,
-  Stack,
-  Text,
-  Accordion,
-  Badge,
-  NativeSelect,
-} from "@chakra-ui/react";
+import { Box, Button, Heading, HStack, Input, Separator, Stack, Text, Accordion, Badge } from "@chakra-ui/react";
 import AppShell from "../components/layout/AppShell.jsx";
 import Card from "../components/ui/Card.jsx";
 
@@ -58,7 +46,6 @@ function makeSnippet(bodyArr, q, maxLen = 140) {
 }
 
 export default function Learning() {
-  // Content is local for now (Later: move to DB)
   const content = useMemo(
     () => [
       {
@@ -315,7 +302,7 @@ export default function Learning() {
   const [q, setQ] = useState("");
 
   // Enhanced search controls
-  const [scope, setScope] = useState("topic"); // "topic" | "all"
+  const [scope, setScope] = useState("topic"); // topic | all
   const [sort, setSort] = useState("relevance"); // relevance | title | newest
   const [activeTag, setActiveTag] = useState("all");
 
@@ -332,7 +319,7 @@ export default function Learning() {
   }, [scope, index, activeCategory]);
 
   function score(item, query) {
-    // simple relevance scoring:
+    // simple relevance scoring
     // title match > tag match > body match
     if (!query) return 0;
     const t = normalize(item.title);
@@ -379,7 +366,7 @@ export default function Learning() {
   }, [q, scope, sort, activeTag, index, activeCategoryId]);
 
   const popular = useMemo(() => {
-    // quick tiles to steer users to the important parts of your app
+    // quick tiles to steer users to the important parts of the app
     const picks = ["batch-refresh", "latestprice-vs-history", "total-return-pct", "asset-provider-ids", "cookies-auth"];
     return index.filter((x) => picks.includes(x.id));
   }, [index]);
@@ -424,7 +411,7 @@ export default function Learning() {
             </Stack>
           </Card>
 
-          {/* RIGHT: Search + Articles */}
+          {/* RIGHT Search and Articles */}
           <Stack gap={4}>
             <Card p={4}>
               <Stack gap={3}>

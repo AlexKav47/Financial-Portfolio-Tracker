@@ -22,7 +22,7 @@ export async function summary(req, res) {
 
   const latestByAssetId = new Map(latestDocs.map((d) => [String(d.assetRefId), d]));
 
-  // Per-holding computed rows
+  // Per holding computed rows
   const computed = holdings.map((h) => {
     const qty = Number(h.quantity) || 0;
     const avg = Number(h.avgBuyPrice) || 0;
@@ -43,10 +43,10 @@ export async function summary(req, res) {
     return {
       _id: String(h._id),
       assetRefId: h.assetRefId ? String(h.assetRefId) : null,
-      type: h.type, // "stock" | "crypto"
+      type: h.type, // stock | crypto
       symbol: h.symbol,
       name: h.name || "",
-      currency: "USD", // for now
+      currency: "USD", 
       quantity: round2(qty),
       avgBuyPrice: round2(avg),
       invested: round2(invested),
@@ -70,8 +70,8 @@ export async function summary(req, res) {
   .map((r) => {
     const sharePct = totalValue > 0 ? (r.currentValue / totalValue) * 100 : 0;
     return {
-      key: r._id,                 // holding row id (fine)
-      assetRefId: r.assetRefId,   // ✅ ADD THIS (string ObjectId)
+      key: r._id,                 
+      assetRefId: r.assetRefId,  
       type: r.type,
       symbol: r.symbol,
       name: r.name,
@@ -87,7 +87,7 @@ export async function summary(req, res) {
   .sort((a, b) => b.currentValue - a.currentValue);
 
 
-  // Grouped (Stocks vs Crypto) - keep this for the right-side summary table
+  // Grouped (Stocks vs Crypto) 
   const groupAgg = {
     stock: { invested: 0, value: 0, gain: 0 },
     crypto: { invested: 0, value: 0, gain: 0 },
@@ -118,7 +118,7 @@ export async function summary(req, res) {
 
   const allocationRaw = perAssetSorted.map((a) => ({
     name: a.symbol,          // short label for chart slices
-    fullName: a.name,        // optional: for tooltip on client
+    fullName: a.name,        
     type: a.type,
     value: round2(a.value),
     pct: totalValue > 0 ? round2((a.value / totalValue) * 100) : 0,
@@ -142,9 +142,9 @@ export async function summary(req, res) {
     allocation = top;
   }
 
-  // 1. Get the current date in the user's "today" context
+  // Get the current date in the users today context
   const now = new Date();
-  // 2. Create a clean UTC start of the month
+  // Create a clean UTC start of the month
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const monthIncomeDocs = await IncomeEntry.find({
@@ -154,7 +154,7 @@ export async function summary(req, res) {
     },
   }).select("amount").lean();
 
-  // 3. Ensure we handle potential nulls or undefined values safely
+  // Ensure to handle potential nulls or undefined values safely
   const passiveIncomeMonth = monthIncomeDocs.reduce((s, x) => {
     const val = parseFloat(x.amount);
     return s + (isNaN(val) ? 0 : val);
@@ -191,7 +191,7 @@ export async function summary(req, res) {
       },
     },
 
-    allocation, // now PER ASSET (top N + Other)
+    allocation, 
     holdings: holdingsRows,
 
     meta: {

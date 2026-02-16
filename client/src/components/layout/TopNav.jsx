@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Flex, HStack, Button, Tabs, Text, Menu, } from "@chakra-ui/react";
-import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
-import { logout } from "../../api/authApi";
+import { Settings as SettingsIcon } from "lucide-react";
 import { loadSettings, saveSettings } from "../../state/settingStore";
 import { useColorMode } from "../ui/color-mode";
 import SettingsDialog from "../settings/SettingsDialog.jsx";
@@ -38,11 +37,6 @@ export default function TopNav() {
     saveSettings(settings);
   }, [settings]);
 
-  async function onLogout() {
-    await logout();
-    window.location.href = "/";
-  }
-
   return (
     <Flex
       as="nav"
@@ -71,7 +65,7 @@ export default function TopNav() {
           value={activeTabValue}
           onValueChange={(details) => nav(tabs[parseInt(details.value, 10)].path)}
           variant="line"
-          fitted={false} // Ensures tabs take only the space they need
+          fitted={false} 
         >
           <Tabs.List borderBottom="none"> 
             {tabs.map((t, index) => (

@@ -1,36 +1,8 @@
 import React, { useMemo } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  Heading,
-  HStack,
-  Stack,
-  Text,
-  SimpleGrid,
-  Flex,
-  Badge,
-  Circle,
-  Separator,
-  Link as ChakraLink,
-} from "@chakra-ui/react";
+import { Box, Button, Container, Heading, HStack, Stack, Text, SimpleGrid, Flex, Circle, Separator, Link as ChakraLink } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-import {
-  Lock,
-  ShieldCheck,
-  LineChart,
-  Layers,
-  ArrowRight,
-  CheckCircle2,
-} from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
+import { Lock, ShieldCheck, LineChart, Layers, ArrowRight, CheckCircle2 } from "lucide-react";
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
 export default function Hero() {
   const T = useMemo(

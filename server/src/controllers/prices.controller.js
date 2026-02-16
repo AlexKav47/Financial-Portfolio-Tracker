@@ -41,7 +41,7 @@ function parseStooqDailyCsv(csvText) {
 }
 
 async function fetchYahooLatestClose(yahooSymbol) {
-  // Small range to keep it light. Yahoo returns arrays of OHLC.
+  // Yahoo returns arrays of OHLC
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
     yahooSymbol
   )}?interval=1d&range=10d`;
@@ -58,7 +58,7 @@ async function fetchYahooLatestClose(yahooSymbol) {
   const quote = result.indicators?.quote?.[0];
   if (!timestamps.length || !quote?.close?.length) throw new Error("Yahoo chart missing data");
 
-  // Find the last non-null close
+  // Find the last non null close
   for (let i = timestamps.length - 1; i >= 0; i--) {
     const close = quote.close[i];
     if (close != null && Number.isFinite(Number(close))) {
@@ -83,14 +83,7 @@ export async function getLatestPrice(req, res) {
     return res.json({ ok: true, latest: cached, source: "cache" });
   }
 
-  // Optional, strict batch-only mode
-  if (String(process.env.PRICE_LIVE_FETCH || "true").toLowerCase() === "false") {
-    return res.status(404).json({
-      error: "Latest price not available yet (batch mode). Wait for nightly refresh.",
-    });
-  }
-
-  // Live fetch once, then cache
+  // Live fetch once then cache
   try {
     let latestRow;
     let source = "stooq";

@@ -9,8 +9,6 @@ function getEnvSecret(name, fallback) {
   const v = process.env[name];
   
   if (!v) {
-    // If in production, we should still probably crash for security
-    // But for your local, use the fallback
     if (process.env.NODE_ENV === "production") {
       throw new Error(`${name} missing in .env! Production requires real secrets.`);
     }

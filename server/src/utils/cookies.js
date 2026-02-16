@@ -1,10 +1,7 @@
 export function getCookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
-
   const sameSiteEnv = String(process.env.COOKIE_SAMESITE || "lax").toLowerCase();
   const sameSite = sameSiteEnv === "none" ? "none" : "lax";
-
-  // Secure must be true when SameSite=None
   const secure = sameSite === "none" ? true : isProd;
 
   return {

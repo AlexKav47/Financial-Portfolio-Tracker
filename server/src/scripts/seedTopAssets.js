@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import axios from "axios";
-import { load } from "cheerio"; // Named import for ESM
+import { load } from "cheerio"; 
 import { connectDb } from "../config/db.js";
 import { AssetMaster } from "../models/AssetMaster.js";
 
@@ -19,13 +19,12 @@ async function fetchSp100Tickers() {
     const response = await axios.get(url, { 
       timeout: 30_000,
       headers: {
-        // Wikipedia requires a User-Agent or it returns 403 Forbidden
         'User-Agent': 'FinancialTrackerProject/1.0 (Contact: your-email@example.com)'
       }
     });
 
     const html = response.data;
-    const $ = load(html); // Fixed: was htmlContent before
+    const $ = load(html); 
 
     const tables = $("table.wikitable");
     let found = [];
@@ -57,7 +56,7 @@ async function fetchSp100Tickers() {
     for (const x of found) map.set(x.symbol, x);
     return Array.from(map.values());
   } catch (err) {
-    console.error("❌ Wikipedia Fetch Error:", err.message);
+    console.error("Wikipedia Fetch Error:", err.message);
     return [];
   }
 }
@@ -75,7 +74,7 @@ async function fetchTop100Crypto() {
       name: String(c.name || "").trim(),
     }));
   } catch (err) {
-    console.error("❌ CoinGecko Fetch Error:", err.message);
+    console.error("CoinGecko Fetch Error", err.message);
     return [];
   }
 }
@@ -96,7 +95,7 @@ async function upsertAssets(assets) {
 async function run() {
   await connectDb();
 
-  // 1) Stocks
+  // Stocks
   const sp = await fetchSp100Tickers();
   const spLimited = sp.slice(0, 100);
 
@@ -111,7 +110,7 @@ async function run() {
     },
   }));
 
-  // 2) Crypto
+  // Crypto
   const cg = await fetchTop100Crypto();
   const cryptoDocs = cg.map((x) => ({
     type: "crypto",
@@ -127,13 +126,13 @@ async function run() {
   const up1 = await upsertAssets(stockDocs);
   const up2 = await upsertAssets(cryptoDocs);
 
-  console.log(`✅ Seed complete!`);
+  console.log(`Seed complete!`);
   console.log(`Stocks processed: ${up1}`);
   console.log(`Crypto processed: ${up2}`);
   process.exit(0);
 }
 
 run().catch((e) => {
-  console.error("❌ Run failed:", e);
+  console.error("Run failed:", e);
   process.exit(1);
 });

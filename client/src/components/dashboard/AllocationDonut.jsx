@@ -3,6 +3,7 @@ import { Box, Text } from "@chakra-ui/react";
 import { ResponsiveContainer, PieChart, Pie, Tooltip, Cell } from "recharts";
 import { formatMoney } from "../../utils/money";
 
+// Pulling colors directly from Chakra tokens so the chart matches the theme
 const COLORS = [
   "var(--chakra-colors-purple-500)",
   "var(--chakra-colors-blue-500)",
@@ -13,6 +14,10 @@ const COLORS = [
   "var(--chakra-colors-red-500)",
 ];
 
+/**
+ * Custom tooltip for the donut slices
+ * themed version with a glassmorphism effect
+ */
 function DonutTooltip({ active, payload, currency }) {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -42,6 +47,7 @@ function DonutTooltip({ active, payload, currency }) {
 }
 
 export default function AllocationDonut({ data = [], currency = "EUR" }) {
+  // Memoizing total so we don't re-calculate the sum on every single re-render
   const total = useMemo(() => {
     return (data || []).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
   }, [data]);

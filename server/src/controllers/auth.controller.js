@@ -10,6 +10,7 @@ import {
   verifyRefreshToken,
 } from "../utils/tokens.js";
 
+// Case sensitivity issues in the DB
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -17,6 +18,7 @@ function normalizeEmail(email) {
 function getReqMeta(req) {
   return {
     userAgent: String(req.headers["user-agent"] || ""),
+    // Check for proxy headers first, then fall back to the socket
     ip: String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || ""),
   };
 }
@@ -28,6 +30,8 @@ export async function register(req, res) {
   if (!emailLower || !password) {
     return res.status(400).json({ error: "Email and password are required" });
   }
+  
+  // 8 chars is the bare minimum for password security
   if (password.length < 8) {
     return res.status(400).json({ error: "Password must be at least 8 characters" });
   }
@@ -40,10 +44,11 @@ export async function register(req, res) {
   const user = await User.create({
     emailLower,
     passwordHash,
-    settings: { theme: "dark", baseCurrency: "EUR", currencySymbol: "€" },
+    // Start everyone off on light mode by default
+    settings: { theme: "light", baseCurrency: "EUR", currencySymbol: "€" },
   });
 
-  // Dont auto login just confirm creation
+  // Not doing an auto-login here to keep the registration flow separate
   return res.status(201).json({ ok: true, userId: user._id.toString() });
 }
 
@@ -67,10 +72,11 @@ export async function login(req, res) {
 
   const { userAgent, ip } = getReqMeta(req);
 
+  // We store the hash of the refresh token, not the token itself for safety 
   await RefreshToken.create({
     userId: user._id,
     tokenHash: sha256(refreshToken),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week session
     revokedAt: null,
     userAgent,
     ip,
@@ -95,22 +101,22 @@ export async function refresh(req, res) {
   try {
     payload = verifyRefreshToken(token);
   } catch {
+    // If the token is junk, clear the cookies and make them reauth
     clearAuthCookies(res);
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   const userId = payload.sub;
 
-  // Check token exists and is not revoked
   const tokenHash = sha256(token);
   const dbToken = await RefreshToken.findOne({ tokenHash, revokedAt: null });
+  
   if (!dbToken) {
-    // Token reuse or revoked so clear cookies
     clearAuthCookies(res);
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // Revoke old token, issue new one
+  // Swap the old token for a new one 
   dbToken.revokedAt = new Date();
   await dbToken.save();
 
@@ -137,10 +143,11 @@ export async function logout(req, res) {
 
   if (token) {
     const tokenHash = sha256(token);
+    // Just invalidate the current session in the DB
     await RefreshToken.updateOne(
       { tokenHash, revokedAt: null },
       { $set: { revokedAt: new Date() } }
-    ).catch(() => {});
+    ).catch(() => {}); 
   }
 
   clearAuthCookies(res);

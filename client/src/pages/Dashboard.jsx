@@ -1,35 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Heading,
-  HStack,
-  Input,
-  Stack,
-  Table,
-  Text,
-  Menu,
-  Portal,
-  Spinner,
-  Tooltip,
-} from "@chakra-ui/react";
-import { 
-  MousePointerClick, 
-  Filter, 
-  Search, 
-  Info, 
-  HelpCircle, 
-  ArrowRight 
-} from "lucide-react";
-
+import { Box, Button, Heading, HStack, Input, Stack, Table, Text, Menu, Portal, Spinner, Tooltip } from "@chakra-ui/react";
+import {  MousePointerClick,  Filter,  Search,  Info,  HelpCircle } from "lucide-react";
 import AppShell from "../components/layout/AppShell.jsx";
 import Card from "../components/ui/Card.jsx";
 import KpiCard from "../components/dashboard/KpiCard.jsx";
 import AllocationDonut from "../components/dashboard/AllocationDonut.jsx";
+import DisplayChartPopUP from "../components/dashboard/DisplayChartPopUP.jsx";
 import { getDashboardSummary } from "../api/dashboardApi.js";
 import { formatMoney } from "../utils/money";
 import { loadSettings } from "../state/settingStore";
-import DisplayChartPopUP from "../components/dashboard/DisplayChartPopUP.jsx";
 
 const InfoTooltip = ({ label }) => (
   <Tooltip.Root portalled interactionMode="hover">

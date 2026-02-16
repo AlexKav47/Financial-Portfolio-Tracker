@@ -6,16 +6,16 @@ const IncomeEntrySchema = new mongoose.Schema(
 
     type: { type: String, enum: ["dividend", "staking"], required: true, index: true },
 
-    // Optional link to AssetMaster later (nice-to-have)
+    // Link to AssetMaster later 
     assetRefId: { type: mongoose.Schema.Types.ObjectId, ref: "AssetMaster", default: null },
 
-    symbol: { type: String, required: true, index: true }, // e.g. AAPL, VUSA, ETH
-    network: { type: String, default: "" }, // staking only (Coinbase/Lido/etc.)
+    symbol: { type: String, required: true, index: true }, 
+    network: { type: String, default: "" }, // Staking only 
 
     date: { type: Date, required: true, index: true },
 
     amount: { type: Number, required: true },
-    currency: { type: String, default: "USD" }, // display/entry currency (no FX conversion)
+    currency: { type: String, default: "USD" }, // Display/entry currency 
   },
   { timestamps: true }
 );

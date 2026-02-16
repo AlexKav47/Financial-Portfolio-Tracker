@@ -24,41 +24,32 @@ import {
 } from "recharts";
 import { getLastPriceHistory } from "../../api/priceHistoryAPI";
 
-// Supervisor logic: "N points -> N unknowns" = polynomial interpolation.
-// With 5 points, we fit a degree-4 polynomial (5 coefficients) EXACTLY through those 5 points.
-// We still fetch 30 days, then pick 5 points from those 30.
-//
-// IMPORTANT FIXES (for your "always positive forecast"):
-// 1) Use the ORIGINAL day indices (__i) as x-values (0..29), NOT 0..4.
-// 2) Forecast at lastIndex + 1 (one day ahead).
-// This avoids bias from compressing unevenly spaced picks into equal spacing.
-
-// Solve A*x=b using Gaussian elimination.
-// Returns the solution vector or null if the system cannot be solved.
+// Solve A*x=b using Gaussian elimination
+// Returns the solution vector or null if the system cannot be solved
 function solveLinearSystem(A, b) {
   const n = A.length;
 
-  // Create an augmented matrix [A | b] to do elimination in one structure.
+  // Create an augmented matrix [A | b] to do elimination in one structure
   const M = A.map((row, i) => [...row, b[i]]);
 
   for (let col = 0; col < n; col++) {
-    // Pick the best pivot row for this column.
+    // Pick the best pivot row for this column
     let pivotRow = col;
     for (let r = col + 1; r < n; r++) {
       if (Math.abs(M[r][col]) > Math.abs(M[pivotRow][col])) pivotRow = r;
     }
 
-    // If pivot is too small, the system is singular.
+    // If pivot is too small, the system is singular
     if (Math.abs(M[pivotRow][col]) < 1e-12) return null;
 
     // Swap pivot row into place.
     if (pivotRow !== col) [M[col], M[pivotRow]] = [M[pivotRow], M[col]];
 
-    // Scale pivot row so the pivot becomes 1.
+    // Scale pivot row so the pivot becomes 1
     const pivot = M[col][col];
     for (let c = col; c <= n; c++) M[col][c] /= pivot;
 
-    // Eliminate this column in all other rows.
+    // Eliminate this column in all other rows
     for (let r = 0; r < n; r++) {
       if (r === col) continue;
       const factor = M[r][col];
@@ -66,11 +57,11 @@ function solveLinearSystem(A, b) {
     }
   }
 
-  // After elimination, the final column holds the solution.
+  // After elimination the final column holds the solution
   return M.map((row) => row[n]);
 }
 
-// Evaluate a polynomial at x.
+// Evaluate a polynomial at x
 // coeffs = [a0, a1, a2, ...] and y = a0 + a1*x + a2*x^2 + ...
 function evalPoly(coeffs, x) {
   let y = 0;
@@ -82,8 +73,8 @@ function evalPoly(coeffs, x) {
   return y;
 }
 
-// Format the x-axis label.
-// If the label is "Next" show a friendly word instead of a date.
+// Format the x-axis label
+// If the label is Next show a word instead of a date
 function formatDateLabel(label) {
   if (!label || label === "Next") return "Forecast";
   const d = new Date(`${label}T00:00:00`);
@@ -92,7 +83,7 @@ function formatDateLabel(label) {
     : d.toLocaleDateString(undefined, { month: "short", day: "2-digit" });
 }
 
-// Format numbers as currency for tooltips and KPI cards.
+// Format numbers as currency for tooltips and KPI cards
 function formatCurrency(v, currency = "EUR") {
   if (v == null || Number.isNaN(v)) return "—";
   return new Intl.NumberFormat(undefined, {
@@ -102,7 +93,7 @@ function formatCurrency(v, currency = "EUR") {
   }).format(Number(v));
 }
 
-// Turn a score into a simple confidence label.
+// Turn a score into a simple confidence label
 function confidenceLabel(score) {
   if (score >= 0.7) return "High";
   if (score >= 0.4) return "Medium";
@@ -159,25 +150,25 @@ function StatCard({ title, value, subValue, icon, accent }) {
 }
 
 /**
- * Pick 5 points from up to 30 rows.
- * Strategy: evenly spaced across time (covers the full window).
+ * Pick 5 points from up to 30 rows
+ * evenly spaced across time (so we capture the trend, not just the last days)
  */
 function pick5EvenlyFrom30(rows) {
   const valid = (Array.isArray(rows) ? rows : [])
-    .map((r, i) => ({ ...r, __i: i })) // store original index (0..29)
+    .map((r, i) => ({ ...r, __i: i })) // store original index 0..29
     .filter((r) => typeof r?.close === "number" && Number.isFinite(r.close));
 
   if (valid.length <= 5) return valid;
 
-  // Evenly spaced indices across the valid array (not necessarily every day if some rows invalid).
+  // Evenly spaced indices across the valid array
   const idxs = [0, 1, 2, 3, 4].map((k) =>
     Math.round((k * (valid.length - 1)) / 4)
   );
 
-  // Unique + sorted
+  // Unique and sorted
   const uniqIdxs = Array.from(new Set(idxs)).sort((a, b) => a - b);
 
-  // If duplicates caused fewer than 5, fill from the end backwards.
+  // If duplicates caused fewer than 5 then fill from the end backwards
   const filled = [...uniqIdxs];
   let cursor = valid.length - 1;
   while (filled.length < 5 && cursor >= 0) {
@@ -190,10 +181,10 @@ function pick5EvenlyFrom30(rows) {
 }
 
 /**
- * Polynomial interpolation through N points (exact fit):
- * With 5 points -> degree 4 polynomial -> 5 coefficients.
+ * Polynomial interpolation through N points
+ * With 5 points, degree 4 polynomial, 5 coefficients
  *
- * Builds Vandermonde matrix:
+ * Builds Vandermonde matrix
  *   A[i][j] = x_i^j
  * and solves A * coeffs = y
  */
@@ -217,13 +208,13 @@ function polyInterpolate(xVals, yVals) {
   return { coeffs };
 }
 
-// Popup component that loads price history and renders the chart + stats.
+// Popup component that loads price history and renders the chart and stats
 export default function DisplayChartPopUP({ open, setOpen, asset }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [rows, setRows] = useState([]);
 
-  // How many days of history to request from the API.
+  // How many days of history to request from the API
   const DAYS = 30;
 
   useEffect(() => {
@@ -263,11 +254,11 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
     };
   }, [open, asset?.assetRefId]);
 
-  // Compute chart data and stats using 5 chosen points (from 30).
+  // Compute chart data and stats using 5 chosen points
   const computed = useMemo(() => {
     const picked5 = pick5EvenlyFrom30(rows);
 
-    // Need exactly 5 points for "5 unknowns" logic (degree 4).
+    // Need exactly 5 points for 5 unknowns logic (degree 4 polynomial)
     if (picked5.length < 5) return null;
 
     // Use original indices (__i) as x-values to preserve spacing.
@@ -279,14 +270,14 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
 
     const { coeffs } = fit;
 
-    // Build chart data: trend is the interpolated polynomial at each chosen x.
+    // Trend is the interpolated polynomial at each chosen x
     const chartData = picked5.map((r) => ({
       date: r.date,
       close: r.close,
       trend: evalPoly(coeffs, r.__i),
     }));
 
-    // Forecast one day beyond the last selected index.
+    // Forecast one day beyond the last selected index
     const lastX = xVals[xVals.length - 1];
     const nextX = lastX + 1;
     const next = evalPoly(coeffs, nextX);
@@ -296,13 +287,13 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
     const lastClose = yVals[yVals.length - 1];
     const delta = next - lastClose;
 
-    // Derivative at lastX (slope at the latest point).
+    // Slope at the latest point
     let instantSlope = 0;
     for (let k = 1; k < coeffs.length; k++) {
       instantSlope += k * coeffs[k] * Math.pow(lastX, k - 1);
     }
 
-    // Reliability proxy: compare forecast jump to average move between the 5 points.
+    // Compare forecast jump to average move between the 5 points
     const absMoves = [];
     for (let i = 1; i < yVals.length; i++) absMoves.push(Math.abs(yVals[i] - yVals[i - 1]));
     const avgMove = absMoves.length
@@ -319,7 +310,6 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
       delta,
       instantSlope,
       stabilityScore,
-      // Useful for debugging if needed:
       pickedIdxs: xVals,
       coeffs,
     };

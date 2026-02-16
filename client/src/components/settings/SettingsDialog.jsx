@@ -7,6 +7,7 @@ import Card from "../ui/Card.jsx";
 import { getMySettings, updateMySettings } from "../../api/settingsApi.js";
 import { changePassword } from "../../api/passwordApi.js";
 import { LogOut } from "lucide-react";
+import { logout } from "../../api/authApi";
 
 export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,6 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
         return;
       }
 
-      // Ensure this matches your backend response mapping (emailLower -> email)
       setEmail(data?.email || "");
       setTheme(data?.settings?.theme || "dark");
       setCurrency(data?.settings?.currency || "EUR");
@@ -45,13 +45,10 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
     return () => { mounted = false; };
   }, [open]);
 
-  // --- LOGOUT LOGIC ---
-  const handleLogout = () => {
-    // Clear your storage (Token/Session)
-    localStorage.removeItem("token"); 
-    // Redirect to login page
-    window.location.href = "/";
-  };
+   async function onLogout() {
+      await logout();
+      window.location.href = "/";
+    }
 
   async function onSaveSettings() {
     setError("");
@@ -173,7 +170,7 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
                   <Button
                     variant="ghost"
                     colorPalette="red"
-                    onClick={handleLogout}
+                    onClick={onLogout}
                     size="sm"
                   > 
                   <LogOut size={14} />

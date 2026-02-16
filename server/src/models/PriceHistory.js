@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const PriceHistorySchema = new mongoose.Schema(
   {
     assetRefId: { type: mongoose.Schema.Types.ObjectId, ref: "AssetMaster", required: true, index: true },
-    date: { type: String, required: true }, // "YYYY-MM-DD"
+    date: { type: String, required: true }, // YYYY-MM-DD
     type: { type: String, required: true },
     symbol: { type: String, required: true },
     source: { type: String, required: true },
@@ -18,10 +18,10 @@ const PriceHistorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Prevent duplicates + makes upsert fast
+// Prevent duplicates and makes upsert fast
 PriceHistorySchema.index({ assetRefId: 1, date: 1 }, { unique: true });
 
-// ✅ Helps pruning by date range and sorting
+// Helps pruning by date range and sorting
 PriceHistorySchema.index({ assetRefId: 1, date: -1 });
 
 export const PriceHistory = mongoose.model("PriceHistory", PriceHistorySchema);

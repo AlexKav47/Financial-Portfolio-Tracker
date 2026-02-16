@@ -28,7 +28,7 @@ export async function updateMySettings(req, res) {
   }
 
   if (currency != null) {
-    // Accept 3-letter codes
+    // Accept 3 letter codes
     const c = String(currency).trim().toUpperCase();
     if (!/^[A-Z]{3}$/.test(c)) return res.status(400).json({ error: "Invalid currency" });
     patch["settings.currency"] = c;

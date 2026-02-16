@@ -22,6 +22,6 @@ export function startScheduler() {
   // run once whenever server comes up
   runOnce();
 
-  // midnight daily (server local time)
+  // midnight daily 
   cron.schedule("0 0 * * *", () => runOnce());
 }

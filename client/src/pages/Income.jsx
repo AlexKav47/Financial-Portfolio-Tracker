@@ -1,31 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  Heading,
-  HStack,
-  Input,
-  NativeSelect,
-  Separator,
-  Stack,
-  Table,
-  Tabs,
-  Text,
-  Spinner,
-  Alert,
-  List,
-} from "@chakra-ui/react";
-
+import { Box, Button, Heading, HStack, Input, Separator, Stack, Table, Tabs, Text, Spinner, Alert, List } from "@chakra-ui/react";
 import AppShell from "../components/layout/AppShell.jsx";
 import Card from "../components/ui/Card.jsx";
 import KpiCard from "../components/dashboard/KpiCard.jsx";
 import { formatMoney } from "../utils/money.js";
-
 import { loadSettings } from "../state/settingStore.js";
 import { listIncome, createIncome, deleteIncome } from "../api/incomeApi.js";
 import { searchAssets } from "../api/assetApi.js";
 import { getDashboardSummary } from "../api/dashboardApi.js";
 
+// Hardcoded these to give the user a head start on common crypto platforms
 const POPULAR_NETWORKS = [
   "Binance",
   "Coinbase",
@@ -42,9 +26,11 @@ const POPULAR_NETWORKS = [
 ];
 
 export default function Income() {
+  // Grab the users currency preference
   const [settings] = useState(() => loadSettings());
   const currency = settings.baseCurrency || "EUR";
 
+  // State for switching between Stock Dividends and Crypto Staking
   const [tab, setTab] = useState("dividends");
   const apiType = tab === "dividends" ? "dividend" : "staking";
 
@@ -54,6 +40,7 @@ export default function Income() {
   const [allEntries, setAllEntries] = useState([]);
   const [portfolioTotal, setPortfolioTotal] = useState(0);
 
+  // Asset search state
   const assetType = apiType === "dividend" ? "stock" : "crypto";
   const [assetQuery, setAssetQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -61,16 +48,20 @@ export default function Income() {
   const [selectedAsset, setSelectedAsset] = useState(null);
   const debounceRef = useRef(null);
 
+  // Form state for adding new entries
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [amount, setAmount] = useState("");
 
+  // Staking specific state
   const [network, setNetwork] = useState("");
   const [networkSuggestions, setNetworkSuggestions] = useState([]);
   const [showNetworkList, setShowNetworkList] = useState(false);
 
+  // Table filtering state
   const [q, setQ] = useState("");
   const [monthFilter, setMonthFilter] = useState("all");
 
+  // Grab both the income history and the dashboard summary for KPIs
   async function load() {
     setError("");
     setLoading(true);
@@ -91,6 +82,7 @@ export default function Income() {
 
     if (dashRes.res.ok) {
       const d = dashRes.data;
+      // We need the total portfolio value to calculate the % yield 
       const total = d?.kpis?.value || d?.groups?.total?.value || 0;
       setPortfolioTotal(total);
     }
@@ -100,6 +92,7 @@ export default function Income() {
     load();
   }, []);
 
+  // Reset the form whenever the user switches between Dividends and Staking
   useEffect(() => {
     setAssetQuery("");
     setSuggestions([]);
@@ -110,6 +103,7 @@ export default function Income() {
     setNetworkSuggestions([]);
   }, [apiType]);
 
+  // Handle the Search as you type logic with a 250ms debounce to save API hits
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const trimmed = assetQuery.trim();
@@ -130,8 +124,7 @@ export default function Income() {
     };
   }, [assetQuery, assetType]);
 
-  // ✅ FIXED: network suggestions now show on focus (even if empty),
-  // and filter as user types.
+  // Filtering the POPULAR_NETWORKS list based on what the user types
   useEffect(() => {
     if (!showNetworkList) {
       setNetworkSuggestions([]);
@@ -150,6 +143,7 @@ export default function Income() {
     setNetworkSuggestions(matches);
   }, [network, showNetworkList]);
 
+  // Handles the filtering and sorting of the main entries table
   const filteredRows = useMemo(() => {
     const s = String(q || "").toLowerCase().trim();
     return (allEntries || [])
@@ -165,9 +159,13 @@ export default function Income() {
           String(r.network || "").toLowerCase().includes(s)
         );
       })
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
+      .sort((a, b) => (a.date < b.date ? 1 : -1)); // Keep newest on top
   }, [allEntries, apiType, q, monthFilter]);
 
+  /**
+   * Calculate Monthly, YTD, and an estimated Next Expected based 
+   * on the average of the last 3 months
+   */
   const kpis = useMemo(() => {
     const all = allEntries || [];
     const now = new Date();
@@ -176,12 +174,16 @@ export default function Income() {
 
     const sum = (arr) => arr.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
 
+    // Filter for the current calendar month
     const thisMonthPrefix = `${yyyy}-${String(mm + 1).padStart(2, "0")}`;
     const monthly = sum(
       all.filter((r) => new Date(r.date).toISOString().startsWith(thisMonthPrefix))
     );
+    
+    // Total for the whole current year
     const ytd = sum(all.filter((r) => new Date(r.date).getFullYear() === yyyy));
 
+    // Look back 3 months to generate a run rate estimate
     const last3Months = [1, 2, 3].map((i) => {
       const d = new Date(yyyy, mm - i, 1);
       const prefix = d.toISOString().slice(0, 7);
@@ -191,6 +193,7 @@ export default function Income() {
     const avgMonthly = (last3Months.reduce((a, b) => a + b, 0) / 3) || 0;
     const nextExpected = Number(avgMonthly.toFixed(2));
 
+    // Projected Annual Yield (Year-to-Date / Months-Elapsed) * 12
     const monthsPassed = mm + 1;
     const projectedAnnual = (ytd / monthsPassed) * 12;
     const yieldValue =
@@ -201,19 +204,23 @@ export default function Income() {
     return { monthly, ytd, nextExpected, yieldPct: yieldValue };
   }, [allEntries, portfolioTotal]);
 
+  // When a user clicks a search result lock it in
   function onSelectAsset(a) {
     setSelectedAsset(a);
     setSuggestions([]);
     setAssetQuery(`${a.symbol} — ${a.name}`);
   }
 
+  // Basic form validation that wont let them submit junk data
   const canAdd = useMemo(() => {
     const a = Number(amount);
     if (!selectedAsset || !date || Number.isNaN(a) || a <= 0) return false;
+    // Staking requires a network/platform, dividends dont
     if (apiType === "staking" && !network.trim()) return false;
     return true;
   }, [selectedAsset, date, amount, apiType, network]);
 
+  // Submit the new entry to the backend
   async function onAdd(e) {
     e.preventDefault();
     setError("");
@@ -235,7 +242,10 @@ export default function Income() {
       return;
     }
 
+    // Optimistically update the list so the UI feels snappy
     setAllEntries((prev) => [data.entry, ...prev]);
+    
+    // Clear the form fields for the next entry
     setAssetQuery("");
     setSelectedAsset(null);
     setAmount("");
@@ -249,6 +259,7 @@ export default function Income() {
       setError(data?.error || "Failed to delete entry.");
       return;
     }
+    // Remove the item from the state immediately
     setAllEntries((prev) => prev.filter((x) => x._id !== id));
   }
 
@@ -262,6 +273,7 @@ export default function Income() {
           <Text color="fg.muted">Track dividends and crypto staking rewards.</Text>
         </Box>
 
+        {/* Global Error Alert */}
         {error && (
           <Alert.Root status="error" variant="subtle">
             <Alert.Indicator />
@@ -269,6 +281,7 @@ export default function Income() {
           </Alert.Root>
         )}
 
+        {/* Top Row KPI Statistics */}
         <HStack gap={4} align="stretch" wrap="wrap">
           <Box flex="1" minW="220px">
             <KpiCard
@@ -300,6 +313,7 @@ export default function Income() {
           </Box>
         </HStack>
 
+        {/* Switcher between Dividends and Staking */}
         <Card p={3}>
           <Tabs.Root
             value={tab}
@@ -318,6 +332,7 @@ export default function Income() {
           gridTemplateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}
           gap={4}
         >
+          {/* Left Column Input Form */}
           <Card p={6}>
             <Heading size="sm" mb={4}>
               Add {apiType === "dividend" ? "Dividend" : "Staking Reward"}
@@ -353,6 +368,7 @@ export default function Income() {
                     />
                   </HStack>
 
+                  {/* Loading spinner for the async search */}
                   {searchBusy && (
                     <HStack color="fg.muted" fontSize="sm">
                       <Spinner size="xs" />
@@ -360,6 +376,7 @@ export default function Income() {
                     </HStack>
                   )}
 
+                  {/* Search Results Dropdown */}
                   {suggestions.length > 0 && (
                     <List.Root
                       mt={2}
@@ -394,6 +411,7 @@ export default function Income() {
                   )}
                 </Box>
 
+                {/* Network input only shows up for Crypto staking */}
                 {apiType === "staking" && (
                   <Box position="relative">
                     <Text textStyle="sm" fontWeight="medium" mb={1}>
@@ -411,6 +429,7 @@ export default function Income() {
                       placeholder="e.g. Coinbase, Lido, Binance"
                     />
 
+                    {/* Simple autocomplete for networks */}
                     {showNetworkList && networkSuggestions.length > 0 && (
                       <List.Root
                         mt={2}
@@ -427,6 +446,7 @@ export default function Income() {
                             cursor="pointer"
                             _hover={{ bg: "bg.muted" }}
                             onMouseDown={(e) => {
+                              // onMouseDown because onBlur would fire first and hide the list
                               e.preventDefault();
                               setNetwork(n);
                               setShowNetworkList(false);
@@ -470,6 +490,7 @@ export default function Income() {
             </form>
           </Card>
 
+          {/* Right Column Historical Entries Table */}
           <Card p={6}>
             <HStack justify="space-between" mb={4}>
               <Heading size="sm">Entries ({apiType})</Heading>

@@ -68,7 +68,7 @@ export function createApp() {
     "/api/auth",
     rateLimit({
       windowMs: 10 * 60 * 1000,
-      max: 40, // tighter for login/register/refresh
+      max: 40, 
       standardHeaders: true,
       legacyHeaders: false,
     })
@@ -76,13 +76,13 @@ export function createApp() {
 
   // CORS hardening
   const allowedOrigins = parseOrigins(
-    process.env.CLIENT_ORIGIN || "http://localhost:5173"
+    process.env.CLIENT_ORIGIN || "https://alexkav47.github.io"
   );
 
   app.use(
     cors({
       origin(origin, cb) {
-        // allow non-browser clients with no Origin header (curl, server-to-server)
+        // allow nonbrowser clients with no Origin header curl, server-to-server
         if (!origin) return cb(null, true);
 
         // exact match only
@@ -109,8 +109,7 @@ export function createApp() {
   app.use("/api/price-history", priceHistoryRoutes);
   app.use("/api/income", incomeRoutes);
 
-  // Error handler (don’t leak stack in prod)
-  // eslint-disable-next-line no-unused-vars
+  // Error handler 
   app.use((err, req, res, next) => {
     console.error(err);
     const status = err.statusCode || 500;

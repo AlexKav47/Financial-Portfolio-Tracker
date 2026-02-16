@@ -1,19 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate, Link as RouterLink } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Container,
-  Field,
-  Heading,
-  Input,
-  Stack,
-  Alert,
-  Text,
-  Link,
-  HStack,
-  Circle,
-} from "@chakra-ui/react";
+import { Box, Button, Container, Field, Heading, Input, Stack, Alert, Text, Link, HStack, Circle } from "@chakra-ui/react";
 import { Lock, ArrowRight, LineChart } from "lucide-react";
 import { login } from "../api/authApi";
 
@@ -27,6 +14,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Hardcoded palette (independent of color mode) 
   const T = {
     bg0: "#050816",
     bg1: "rgba(11, 18, 39, 0.72)",

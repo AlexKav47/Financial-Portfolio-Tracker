@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://46.224.237.210:4000/api";
 
 async function doFetch(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -10,7 +10,6 @@ async function doFetch(path, options = {}) {
     credentials: "include",
   });
 
-  // If unauthorized caller can decide what to do
   return res;
 }
 

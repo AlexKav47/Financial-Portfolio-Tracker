@@ -3,6 +3,7 @@ import { refreshSingleAsset } from "../services/marketData/refresh.job.js";
 
 
 export async function listHoldings(req, res) {
+  // Pulling everything for the user newest first 
   const holdings = await Holding.find({ userId: req.user.userId }).sort({ createdAt: -1 });
   res.json({ ok: true, holdings });
 }
@@ -33,6 +34,7 @@ export async function createHolding(req, res) {
     avgBuyPrice: Number(avgBuyPrice),
   });
 
+  // Start a refresh job so the user sees live prices immediately after adding
   await refreshSingleAsset(assetRefId, { keepDays: 30 });
 
   res.status(201).json({ ok: true, holding });
@@ -41,6 +43,7 @@ export async function createHolding(req, res) {
 export async function deleteHolding(req, res) {
   const { id } = req.params;
 
+  // Make sure they actually own the holding they are trying to delete
   const deleted = await Holding.findOneAndDelete({ _id: id, userId: req.user.userId });
   if (!deleted) return res.status(404).json({ error: "Holding not found" });
 

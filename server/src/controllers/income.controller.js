@@ -16,6 +16,7 @@ export async function listIncome(req, res) {
   const filter = { userId };
   if (type) filter.type = type;
 
+  // Sorting by date primarily, then by creation order if dates are identical
   const entries = await IncomeEntry.find(filter).sort({ date: -1, createdAt: -1 }).lean();
 
   res.json({ ok: true, entries });
@@ -29,6 +30,7 @@ export async function createIncome(req, res) {
   const t = parseType(type);
   if (!t) return res.status(400).json({ error: "Invalid type. Must be dividend or staking." });
 
+  // Standardizing symbols to uppercase so the UI looks consistent
   const sym = String(symbol || "").trim().toUpperCase();
   if (!sym) return res.status(400).json({ error: "symbol is required" });
 
@@ -41,9 +43,11 @@ export async function createIncome(req, res) {
   const cur = currency ? String(currency).trim().toUpperCase() : "USD";
   if (!/^[A-Z]{3}$/.test(cur)) return res.status(400).json({ error: "currency must be a 3-letter code" });
 
+  // Staking specifically needs a network name, dividends dont
   const net = t === "staking" ? String(network || "").trim() : "";
   if (t === "staking" && !net) return res.status(400).json({ error: "network is required for staking entries" });
 
+  // Sending back extra info here to help debug if the delete actually worked
   const doc = await IncomeEntry.create({
     userId,
     type: t,
@@ -86,6 +90,7 @@ export async function incomeSummary(req, res) {
   const yyyy = now.getUTCFullYear();
   const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
 
+  // Setting the range boundaries for current month and year to date
   const startOfMonth = new Date(`${yyyy}-${mm}-01T00:00:00.000Z`);
   const startOfYear = new Date(`${yyyy}-01-01T00:00:00.000Z`);
 

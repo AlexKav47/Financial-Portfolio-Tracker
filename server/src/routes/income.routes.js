@@ -5,7 +5,7 @@ import { listIncome, createIncome, deleteIncome, incomeSummary } from "../contro
 const router = Router();
 
 router.get("/", requireAuth, listIncome);
-router.get("/summary", requireAuth, incomeSummary); // <-- ADD
+router.get("/summary", requireAuth, incomeSummary); 
 router.post("/", requireAuth, createIncome);
 router.delete("/:id", requireAuth, deleteIncome);
 
