@@ -1,46 +1,72 @@
-function parseCsv(csvText) {
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+import { parse } from "csv-parse/sync";
 
-  const idx = {
-    date: headers.indexOf("date"),
-    open: headers.indexOf("open"),
-    high: headers.indexOf("high"),
-    low: headers.indexOf("low"),
-    close: headers.indexOf("close"),
-    volume: headers.indexOf("volume"),
-  };
-
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",");
-    const date = cols[idx.date];
-    if (!date) continue;
-
-    rows.push({
-      date,
-      open: idx.open >= 0 ? Number(cols[idx.open]) : null,
-      high: idx.high >= 0 ? Number(cols[idx.high]) : null,
-      low: idx.low >= 0 ? Number(cols[idx.low]) : null,
-      close: Number(cols[idx.close]),
-      volume: idx.volume >= 0 ? Number(cols[idx.volume]) : null,
-    });
-  }
-  return rows.filter((r) => Number.isFinite(r.close));
+function toNum(v) {
+  if (v == null) return null;
+  const n = Number(String(v).trim());
+  return Number.isFinite(n) ? n : null;
 }
 
-export async function fetchStooqDailyHistory(stooqSymbol) {
-  // Stooq daily CSV endpoint:
-  const url = `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSymbol)}&i=d`;
-  const res = await fetch(url);
+function toISODate(dateStr) {
+  const s = String(dateStr || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return s;
+}
+
+function parseCsv(csvText) {
+  const records = parse(csvText, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  });
+
+  return records
+    .map((r) => {
+      const date = toISODate(r.Date ?? r.DATE ?? r.date);
+      const open = toNum(r.Open ?? r.OPEN ?? r.open);
+      const high = toNum(r.High ?? r.HIGH ?? r.high);
+      const low = toNum(r.Low ?? r.LOW ?? r.low);
+      const close = toNum(r.Close ?? r.CLOSE ?? r.close);
+      const volume = toNum(r.Volume ?? r.VOLUME ?? r.volume);
+
+      if (!date || close == null) return null;
+      return { date, open, high, low, close, volume };
+    })
+    .filter(Boolean);
+}
+
+function stooqCsvUrl(stooqSymbol, daysBack) {
+  if (!daysBack) {
+    return `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSymbol)}&i=d`;
+  }
+
+  const today = new Date();
+  const d2 = today.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+
+  const past = new Date(today);
+  past.setDate(today.getDate() - daysBack);
+  const d1 = past.toISOString().slice(0, 10).replace(/-/g, "");
+
+  return `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSymbol)}&i=d&d1=${d1}&d2=${d2}`;
+}
+
+// daysBack = calendar days to fetch (use 70 to reliably cover 30 trading days)
+export async function fetchStooqDailyHistory(stooqSymbol, daysBack = 70) {
+  const url = stooqCsvUrl(stooqSymbol, daysBack);
+
+  const res = await fetch(url, {
+    headers: { "User-Agent": "FinancialPortfolioTracker/1.0" },
+  });
   if (!res.ok) throw new Error(`Stooq fetch failed (${res.status})`);
+
   const csv = await res.text();
-  return parseCsv(csv);
+  const rows = parseCsv(csv);
+
+  rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return rows;
 }
 
 export async function fetchStooqLatest(stooqSymbol) {
-  const rows = await fetchStooqDailyHistory(stooqSymbol);
+  const rows = await fetchStooqDailyHistory(stooqSymbol, 70);
   if (!rows.length) throw new Error("No Stooq data");
-  return rows[rows.length - 1]; // last row is latest
+  return rows[rows.length - 1];
 }

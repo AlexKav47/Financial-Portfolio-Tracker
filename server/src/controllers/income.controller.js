@@ -16,11 +16,6 @@ export async function listIncome(req, res) {
   const filter = { userId };
   if (type) filter.type = type;
 
-  if (q) {
-    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-    filter.$or = [{ symbol: re }, { notes: re }, { network: re }];
-  }
-
   const entries = await IncomeEntry.find(filter).sort({ date: -1, createdAt: -1 }).lean();
 
   res.json({ ok: true, entries });
@@ -29,7 +24,7 @@ export async function listIncome(req, res) {
 export async function createIncome(req, res) {
   const userId = req.user.userId;
 
-  const { type, symbol, network, date, amount, currency, notes, assetRefId } = req.body || {};
+  const { type, symbol, network, date, amount, currency, assetRefId } = req.body || {};
 
   const t = parseType(type);
   if (!t) return res.status(400).json({ error: "Invalid type. Must be dividend or staking." });
@@ -58,7 +53,6 @@ export async function createIncome(req, res) {
     date: d,
     amount: amt,
     currency: cur,
-    notes: String(notes || "").trim(),
   });
 
   res.status(201).json({ ok: true, entry: doc });
@@ -68,12 +62,22 @@ export async function deleteIncome(req, res) {
   const userId = req.user.userId;
   const id = req.params.id;
 
-  const found = await IncomeEntry.findOne({ _id: id, userId }).lean();
-  if (!found) return res.status(404).json({ error: "Income entry not found" });
+  const before = await IncomeEntry.findOne({ _id: id, userId }).lean();
+  if (!before) return res.status(404).json({ error: "Income entry not found" });
 
-  await IncomeEntry.deleteOne({ _id: id, userId });
-  res.json({ ok: true });
+  const result = await IncomeEntry.deleteOne({ _id: id, userId });
+
+  const after = await IncomeEntry.findOne({ _id: id, userId }).lean();
+
+  return res.json({
+    ok: true,
+    deletedCount: result.deletedCount,
+    stillExistsAfterDelete: Boolean(after),
+    db: IncomeEntry.db?.name,
+    collection: IncomeEntry.collection?.name,
+  });
 }
+
 
 export async function incomeSummary(req, res) {
   const userId = req.user.userId;

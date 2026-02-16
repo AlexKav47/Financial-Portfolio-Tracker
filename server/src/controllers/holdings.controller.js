@@ -1,4 +1,6 @@
 import { Holding } from "../models/Holding.js";
+import { refreshSingleAsset } from "../services/marketData/refresh.job.js";
+
 
 export async function listHoldings(req, res) {
   const holdings = await Holding.find({ userId: req.user.userId }).sort({ createdAt: -1 });
@@ -30,6 +32,8 @@ export async function createHolding(req, res) {
     quantity: Number(quantity),
     avgBuyPrice: Number(avgBuyPrice),
   });
+
+  await refreshSingleAsset(assetRefId, { keepDays: 30 });
 
   res.status(201).json({ ok: true, holding });
 }

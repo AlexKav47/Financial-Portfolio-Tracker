@@ -27,8 +27,18 @@ import { searchAssets } from "../api/assetApi.js";
 import { getDashboardSummary } from "../api/dashboardApi.js";
 
 const POPULAR_NETWORKS = [
-  "Binance", "Coinbase", "Lido", "Kraken", "Metamask", 
-  "Rocket Pool", "Nexo", "Crypto.com", "Ledger Live", "Phantom", "Solana", "Ethereum Mainnet"
+  "Binance",
+  "Coinbase",
+  "Lido",
+  "Kraken",
+  "Metamask",
+  "Rocket Pool",
+  "Nexo",
+  "Crypto.com",
+  "Ledger Live",
+  "Phantom",
+  "Solana",
+  "Ethereum Mainnet",
 ];
 
 export default function Income() {
@@ -40,7 +50,7 @@ export default function Income() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   const [allEntries, setAllEntries] = useState([]);
   const [portfolioTotal, setPortfolioTotal] = useState(0);
 
@@ -53,7 +63,7 @@ export default function Income() {
 
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [amount, setAmount] = useState("");
-  const [notes, setNotes] = useState("");
+
   const [network, setNetwork] = useState("");
   const [networkSuggestions, setNetworkSuggestions] = useState([]);
   const [showNetworkList, setShowNetworkList] = useState(false);
@@ -64,10 +74,10 @@ export default function Income() {
   async function load() {
     setError("");
     setLoading(true);
-    
+
     const [incomeRes, dashRes] = await Promise.all([
       listIncome({ type: "all", q: "" }),
-      getDashboardSummary()
+      getDashboardSummary(),
     ]);
 
     setLoading(false);
@@ -78,12 +88,10 @@ export default function Income() {
     }
 
     setAllEntries(incomeRes.data?.entries || []);
-    
+
     if (dashRes.res.ok) {
       const d = dashRes.data;
-      // Fixed: Accessing the total value based on your specific API structure
       const total = d?.kpis?.value || d?.groups?.total?.value || 0;
-      console.log("Found Portfolio Total:", total); 
       setPortfolioTotal(total);
     }
   }
@@ -97,8 +105,9 @@ export default function Income() {
     setSuggestions([]);
     setSelectedAsset(null);
     setAmount("");
-    setNotes("");
     setNetwork("");
+    setShowNetworkList(false);
+    setNetworkSuggestions([]);
   }, [apiType]);
 
   useEffect(() => {
@@ -116,24 +125,34 @@ export default function Income() {
       if (res.ok) setSuggestions(data?.results || []);
     }, 250);
 
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [assetQuery, assetType]);
 
+  // ✅ FIXED: network suggestions now show on focus (even if empty),
+  // and filter as user types.
   useEffect(() => {
-    const trimmed = network.trim().toLowerCase();
-    if (!trimmed || !showNetworkList) {
+    if (!showNetworkList) {
       setNetworkSuggestions([]);
       return;
     }
-    const matches = POPULAR_NETWORKS.filter(p => 
-      p.toLowerCase().includes(trimmed) && p.toLowerCase() !== trimmed
-    );
+
+    const trimmed = network.trim().toLowerCase();
+
+    const matches = trimmed
+      ? POPULAR_NETWORKS.filter((p) => {
+          const pl = p.toLowerCase();
+          return pl.includes(trimmed) && pl !== trimmed;
+        })
+      : POPULAR_NETWORKS;
+
     setNetworkSuggestions(matches);
   }, [network, showNetworkList]);
 
   const filteredRows = useMemo(() => {
     const s = String(q || "").toLowerCase().trim();
-    return allEntries
+    return (allEntries || [])
       .filter((r) => r.type === apiType)
       .filter((r) => {
         if (monthFilter === "all") return true;
@@ -143,7 +162,6 @@ export default function Income() {
         if (!s) return true;
         return (
           String(r.symbol || "").toLowerCase().includes(s) ||
-          String(r.notes || "").toLowerCase().includes(s) ||
           String(r.network || "").toLowerCase().includes(s)
         );
       })
@@ -154,28 +172,31 @@ export default function Income() {
     const all = allEntries || [];
     const now = new Date();
     const yyyy = now.getFullYear();
-    const mm = now.getMonth(); 
-    
+    const mm = now.getMonth();
+
     const sum = (arr) => arr.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
 
     const thisMonthPrefix = `${yyyy}-${String(mm + 1).padStart(2, "0")}`;
-    const monthly = sum(all.filter((r) => new Date(r.date).toISOString().startsWith(thisMonthPrefix)));
+    const monthly = sum(
+      all.filter((r) => new Date(r.date).toISOString().startsWith(thisMonthPrefix))
+    );
     const ytd = sum(all.filter((r) => new Date(r.date).getFullYear() === yyyy));
 
-    const last3Months = [1, 2, 3].map(i => {
+    const last3Months = [1, 2, 3].map((i) => {
       const d = new Date(yyyy, mm - i, 1);
       const prefix = d.toISOString().slice(0, 7);
-      return sum(all.filter(r => r.date.startsWith(prefix)));
+      return sum(all.filter((r) => String(r.date).startsWith(prefix)));
     });
+
     const avgMonthly = (last3Months.reduce((a, b) => a + b, 0) / 3) || 0;
-    // Fixed: Ensure this is a clean number for the KpiCard
     const nextExpected = Number(avgMonthly.toFixed(2));
 
     const monthsPassed = mm + 1;
     const projectedAnnual = (ytd / monthsPassed) * 12;
-    const yieldValue = (portfolioTotal > 0 && projectedAnnual > 0) 
-      ? ((projectedAnnual / portfolioTotal) * 100).toFixed(2) 
-      : null;
+    const yieldValue =
+      portfolioTotal > 0 && projectedAnnual > 0
+        ? ((projectedAnnual / portfolioTotal) * 100).toFixed(2)
+        : null;
 
     return { monthly, ytd, nextExpected, yieldPct: yieldValue };
   }, [allEntries, portfolioTotal]);
@@ -188,7 +209,7 @@ export default function Income() {
 
   const canAdd = useMemo(() => {
     const a = Number(amount);
-    if (!selectedAsset || !date || isNaN(a) || a <= 0) return false;
+    if (!selectedAsset || !date || Number.isNaN(a) || a <= 0) return false;
     if (apiType === "staking" && !network.trim()) return false;
     return true;
   }, [selectedAsset, date, amount, apiType, network]);
@@ -205,7 +226,6 @@ export default function Income() {
       date,
       amount: Number(amount),
       currency: currency,
-      notes: notes.trim(),
       ...(apiType === "staking" ? { network: network.trim() } : {}),
     };
 
@@ -219,8 +239,8 @@ export default function Income() {
     setAssetQuery("");
     setSelectedAsset(null);
     setAmount("");
-    setNotes("");
     setNetwork("");
+    setShowNetworkList(false);
   }
 
   async function onDelete(id) {
@@ -236,7 +256,9 @@ export default function Income() {
     <AppShell>
       <Stack gap={4}>
         <Box>
-          <Heading size="md" mb={2}>Income</Heading>
+          <Heading size="md" mb={2}>
+            Income
+          </Heading>
           <Text color="fg.muted">Track dividends and crypto staking rewards.</Text>
         </Box>
 
@@ -249,21 +271,41 @@ export default function Income() {
 
         <HStack gap={4} align="stretch" wrap="wrap">
           <Box flex="1" minW="220px">
-            <KpiCard title="Total Monthly Income" value={formatMoney(kpis.monthly, currency)} isLoading={loading} />
+            <KpiCard
+              title="Total Monthly Income"
+              value={formatMoney(kpis.monthly, currency)}
+              isLoading={loading}
+            />
           </Box>
           <Box flex="1" minW="220px">
-            <KpiCard title="Total YTD Income" value={formatMoney(kpis.ytd, currency)} isLoading={loading} />
+            <KpiCard
+              title="Total YTD Income"
+              value={formatMoney(kpis.ytd, currency)}
+              isLoading={loading}
+            />
           </Box>
           <Box flex="1" minW="220px">
-            <KpiCard title="Next Expected (Est.)" value={formatMoney(kpis.nextExpected, currency)} isLoading={loading} />
+            <KpiCard
+              title="Next Expected (Est.)"
+              value={formatMoney(kpis.nextExpected, currency)}
+              isLoading={loading}
+            />
           </Box>
           <Box flex="1" minW="220px">
-            <KpiCard title="Annual Yield" value={kpis.yieldPct == null ? "—" : `${kpis.yieldPct}%`} isLoading={loading} />
+            <KpiCard
+              title="Annual Yield"
+              value={kpis.yieldPct == null ? "—" : `${kpis.yieldPct}%`}
+              isLoading={loading}
+            />
           </Box>
         </HStack>
 
         <Card p={3}>
-          <Tabs.Root value={tab} onValueChange={(d) => setTab(d.value)} variant="line">
+          <Tabs.Root
+            value={tab}
+            onValueChange={(d) => setTab(d.value)}
+            variant="line"
+          >
             <Tabs.List>
               <Tabs.Trigger value="dividends">Dividends</Tabs.Trigger>
               <Tabs.Trigger value="staking">Staking</Tabs.Trigger>
@@ -271,31 +313,80 @@ export default function Income() {
           </Tabs.Root>
         </Card>
 
-        <Box display="grid" gridTemplateColumns={{ base: "1fr", lg: "1.2fr 1fr" }} gap={4}>
+        <Box
+          display="grid"
+          gridTemplateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}
+          gap={4}
+        >
           <Card p={6}>
-            <Heading size="sm" mb={4}>Add {apiType === "dividend" ? "Dividend" : "Staking Reward"}</Heading>
+            <Heading size="sm" mb={4}>
+              Add {apiType === "dividend" ? "Dividend" : "Staking Reward"}
+            </Heading>
+
             <form onSubmit={onAdd}>
               <Stack gap={4}>
                 <Box>
-                  <Text textStyle="sm" fontWeight="medium" mb={1}>Asset</Text>
+                  <Text textStyle="sm" fontWeight="medium" mb={1}>
+                    Asset
+                  </Text>
                   <HStack gap={2} mb={2}>
-                    <Box px={3} py={2} borderWidth="1px" borderRadius="md" minW="110px" bg="bg.muted">
-                      <Text fontSize="sm" fontWeight="semibold">{assetType === "stock" ? "Stock" : "Crypto"}</Text>
+                    <Box
+                      px={3}
+                      py={2}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      minW="110px"
+                      bg="bg.muted"
+                    >
+                      <Text fontSize="sm" fontWeight="semibold">
+                        {assetType === "stock" ? "Stock" : "Crypto"}
+                      </Text>
                     </Box>
                     <Input
                       value={assetQuery}
                       onChange={(e) => setAssetQuery(e.target.value)}
-                      placeholder={assetType === "stock" ? "Search AAPL, VUSA..." : "Search BTC, ETH..."}
+                      placeholder={
+                        assetType === "stock"
+                          ? "Search AAPL, VUSA..."
+                          : "Search BTC, ETH..."
+                      }
                     />
                   </HStack>
-                  {searchBusy && <HStack color="fg.muted" fontSize="sm"><Spinner size="xs" /><Text>Searching...</Text></HStack>}
+
+                  {searchBusy && (
+                    <HStack color="fg.muted" fontSize="sm">
+                      <Spinner size="xs" />
+                      <Text>Searching...</Text>
+                    </HStack>
+                  )}
+
                   {suggestions.length > 0 && (
-                    <List.Root mt={2} variant="plain" borderWidth="1px" borderRadius="md" overflow="hidden">
+                    <List.Root
+                      mt={2}
+                      variant="plain"
+                      borderWidth="1px"
+                      borderRadius="md"
+                      overflow="hidden"
+                    >
                       {suggestions.map((s) => (
-                        <List.Item key={s._id} px={3} py={2} cursor="pointer" _hover={{ bg: "bg.muted" }} onClick={() => onSelectAsset(s)}>
+                        <List.Item
+                          key={s._id}
+                          px={3}
+                          py={2}
+                          cursor="pointer"
+                          _hover={{ bg: "bg.muted" }}
+                          onClick={() => onSelectAsset(s)}
+                        >
                           <HStack justify="space-between">
-                            <Box><Text fontWeight="semibold">{s.symbol}</Text><Text fontSize="xs" color="fg.muted">{s.name}</Text></Box>
-                            <Text fontSize="xs" color="fg.subtle">{s.type}</Text>
+                            <Box>
+                              <Text fontWeight="semibold">{s.symbol}</Text>
+                              <Text fontSize="xs" color="fg.muted">
+                                {s.name}
+                              </Text>
+                            </Box>
+                            <Text fontSize="xs" color="fg.subtle">
+                              {s.type}
+                            </Text>
                           </HStack>
                         </List.Item>
                       ))}
@@ -305,34 +396,76 @@ export default function Income() {
 
                 {apiType === "staking" && (
                   <Box position="relative">
-                    <Text textStyle="sm" fontWeight="medium" mb={1}>Network / Platform</Text>
+                    <Text textStyle="sm" fontWeight="medium" mb={1}>
+                      Network / Platform
+                    </Text>
+
                     <Input
                       value={network}
-                      onChange={(e) => { setNetwork(e.target.value); setShowNetworkList(true); }}
+                      onChange={(e) => {
+                        setNetwork(e.target.value);
+                        setShowNetworkList(true);
+                      }}
                       onFocus={() => setShowNetworkList(true)}
-                      onBlur={() => setTimeout(() => setShowNetworkList(false), 200)}
+                      onBlur={() => setTimeout(() => setShowNetworkList(false), 150)}
                       placeholder="e.g. Coinbase, Lido, Binance"
                     />
+
+                    {showNetworkList && networkSuggestions.length > 0 && (
+                      <List.Root
+                        mt={2}
+                        variant="plain"
+                        borderWidth="1px"
+                        borderRadius="md"
+                        overflow="hidden"
+                      >
+                        {networkSuggestions.slice(0, 8).map((n) => (
+                          <List.Item
+                            key={n}
+                            px={3}
+                            py={2}
+                            cursor="pointer"
+                            _hover={{ bg: "bg.muted" }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setNetwork(n);
+                              setShowNetworkList(false);
+                            }}
+                          >
+                            <Text fontWeight="semibold">{n}</Text>
+                          </List.Item>
+                        ))}
+                      </List.Root>
+                    )}
                   </Box>
                 )}
 
                 <HStack gap={4}>
                   <Box flex={1}>
-                    <Text textStyle="sm" fontWeight="medium" mb={1}>Date</Text>
-                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                    <Text textStyle="sm" fontWeight="medium" mb={1}>
+                      Date
+                    </Text>
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                    />
                   </Box>
                   <Box flex={1}>
-                    <Text textStyle="sm" fontWeight="medium" mb={1}>Amount ({currency})</Text>
-                    <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 12.34" />
+                    <Text textStyle="sm" fontWeight="medium" mb={1}>
+                      Amount ({currency})
+                    </Text>
+                    <Input
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="e.g. 12.34"
+                    />
                   </Box>
                 </HStack>
 
-                <Box>
-                  <Text textStyle="sm" fontWeight="medium" mb={1}>Notes (optional)</Text>
-                  <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Q4 dividend" />
-                </Box>
-
-                <Button type="submit" disabled={!canAdd}>Add Entry</Button>
+                <Button type="submit" disabled={!canAdd}>
+                  Add Entry
+                </Button>
               </Stack>
             </form>
           </Card>
@@ -340,9 +473,16 @@ export default function Income() {
           <Card p={6}>
             <HStack justify="space-between" mb={4}>
               <Heading size="sm">Entries ({apiType})</Heading>
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search..." w="150px" size="sm" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search..."
+                w="150px"
+                size="sm"
+              />
             </HStack>
             <Separator mb={4} />
+
             <Table.Root size="sm" variant="line">
               <Table.Header>
                 <Table.Row bg="bg.muted">
@@ -356,10 +496,20 @@ export default function Income() {
                 {filteredRows.map((r) => (
                   <Table.Row key={r._id}>
                     <Table.Cell fontWeight="semibold">{r.symbol}</Table.Cell>
-                    <Table.Cell>{new Date(r.date).toISOString().slice(0, 10)}</Table.Cell>
-                    <Table.Cell textAlign="end">{formatMoney(r.amount, currency, 2)}</Table.Cell>
+                    <Table.Cell>
+                      {new Date(r.date).toISOString().slice(0, 10)}
+                    </Table.Cell>
                     <Table.Cell textAlign="end">
-                      <Button size="xs" variant="ghost" onClick={() => onDelete(r._id)}>Delete</Button>
+                      {formatMoney(r.amount, currency, 2)}
+                    </Table.Cell>
+                    <Table.Cell textAlign="end">
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => onDelete(r._id)}
+                      >
+                        Delete
+                      </Button>
                     </Table.Cell>
                   </Table.Row>
                 ))}

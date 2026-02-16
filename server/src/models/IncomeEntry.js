@@ -16,8 +16,6 @@ const IncomeEntrySchema = new mongoose.Schema(
 
     amount: { type: Number, required: true },
     currency: { type: String, default: "USD" }, // display/entry currency (no FX conversion)
-
-    notes: { type: String, default: "" },
   },
   { timestamps: true }
 );

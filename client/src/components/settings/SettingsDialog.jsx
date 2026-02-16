@@ -50,7 +50,7 @@ export default function SettingsDialog({ open, onOpenChange, onUpdated }) {
     // Clear your storage (Token/Session)
     localStorage.removeItem("token"); 
     // Redirect to login page
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   async function onSaveSettings() {

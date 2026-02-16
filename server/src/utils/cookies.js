@@ -1,17 +1,20 @@
 export function getCookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
 
-  // When deploy frontend and backend on different domains need cross site cookies
-  // sameSite must be "none"
-  // secure must be true
-  // CORS must allow credentials and explicit origin
+  const sameSiteEnv = String(process.env.COOKIE_SAMESITE || "lax").toLowerCase();
+  const sameSite = sameSiteEnv === "none" ? "none" : "lax";
+
+  // Secure must be true when SameSite=None
+  const secure = sameSite === "none" ? true : isProd;
+
   return {
     httpOnly: true,
-    secure: isProd,    
-    sameSite: "lax",    
+    secure,
+    sameSite, 
     path: "/",
   };
 }
+
 
 export function setAuthCookies(res, { accessToken, refreshToken }) {
   const base = getCookieOptions();

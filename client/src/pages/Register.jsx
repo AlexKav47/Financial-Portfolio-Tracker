@@ -128,7 +128,7 @@ export default function Register() {
           </Box>
           <Stack gap={0} lineHeight="1.05" textAlign="left">
             <Text fontWeight="900" letterSpacing="-0.6px">
-              Portfolio Tracker
+              Financial Portfolio Tracker
             </Text>
             <Text fontSize="12px" color={T.text2} fontWeight="700">
               Create your account
