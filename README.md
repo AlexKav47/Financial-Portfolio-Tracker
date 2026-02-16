@@ -31,5 +31,4 @@ A full-stack portfolio dashboard for beginner Irish investors: unified holdings,
 **Frontend:** React + Vite, Chakra UI, Recharts  
 **Backend:** Node.js + Express 
 **Database:** MongoDB Atlas  
-**Process:** PM2 Hetzner deployment 
 **Market data:** Stooq for stocks and Yahoo Finance for crypto
