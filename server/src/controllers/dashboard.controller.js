@@ -1,5 +1,6 @@
 import { Holding } from "../models/Holding.js";
 import { LatestPrice } from "../models/LatestPrice.js";
+import { IncomeEntry } from "../models/IncomeEntry.js";
 
 function round2(n) {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -141,6 +142,25 @@ export async function summary(req, res) {
     allocation = top;
   }
 
+  // 1. Get the current date in the user's "today" context
+  const now = new Date();
+  // 2. Create a clean UTC start of the month
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+  const monthIncomeDocs = await IncomeEntry.find({
+    userId,
+    date: { 
+      $gte: startOfMonth 
+    },
+  }).select("amount").lean();
+
+  // 3. Ensure we handle potential nulls or undefined values safely
+  const passiveIncomeMonth = monthIncomeDocs.reduce((s, x) => {
+    const val = parseFloat(x.amount);
+    return s + (isNaN(val) ? 0 : val);
+  }, 0);
+
+
   res.json({
     ok: true,
 
@@ -148,7 +168,7 @@ export async function summary(req, res) {
       value: round2(totalValue),
       totalProfit: round2(totalProfit),
       totalReturnPct,
-      passiveIncome: null,
+      passiveIncome: round2(passiveIncomeMonth),
     },
 
     groups: {

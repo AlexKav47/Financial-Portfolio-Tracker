@@ -300,6 +300,12 @@ const totalReturnText =
       ? "—"
       : `${Number(kpis.totalReturnPct).toFixed(2)}%`;
 
+const passiveIncomeText =
+  state.loading
+    ? "—"
+    : kpis.passiveIncome == null
+      ? "—"
+      : formatMoney(kpis.passiveIncome, settings.baseCurrency);
 
   return (
     <AppShell>
@@ -363,8 +369,8 @@ const totalReturnText =
           <Box flex="1" minW="220px">
             <KpiCard 
               title={<HStack gap={0}><Text>Passive Income</Text><InfoTooltip label="Dividends and interest earned over the last 12 months." /></HStack>} 
-              value="—" 
-              isLoading={false} 
+              value={passiveIncomeText}
+              isLoading={state.loading} 
             />
           </Box>
         </HStack>

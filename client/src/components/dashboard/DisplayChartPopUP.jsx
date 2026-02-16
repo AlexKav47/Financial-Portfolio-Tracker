@@ -24,11 +24,14 @@ import {
 } from "recharts";
 import { getLastPriceHistory } from "../../api/priceHistoryAPI";
 
-// 1. Fetch the last 30 days of price history for the asset when the popup opens.
-// 2. Fit a polynomial regression to the close prices to find the trend.
-// 3. Compute a projected "next" value and confidence score from the fit.
-// 4. Render a chart with the price history, trend line, and next projection.
-// 5. Show KPI cards for trend direction, reliability, and next target.
+// Supervisor logic: "N points -> N unknowns" = polynomial interpolation.
+// With 5 points, we fit a degree-4 polynomial (5 coefficients) EXACTLY through those 5 points.
+// We still fetch 30 days, then pick 5 points from those 30.
+//
+// IMPORTANT FIXES (for your "always positive forecast"):
+// 1) Use the ORIGINAL day indices (__i) as x-values (0..29), NOT 0..4.
+// 2) Forecast at lastIndex + 1 (one day ahead).
+// This avoids bias from compressing unevenly spaced picks into equal spacing.
 
 // Solve A*x=b using Gaussian elimination.
 // Returns the solution vector or null if the system cannot be solved.
@@ -68,84 +71,15 @@ function solveLinearSystem(A, b) {
 }
 
 // Evaluate a polynomial at x.
-// coeffs = [a0, a1, a2, and so on] and y = a0 + a1*x + a2*x^2 + and so on.
+// coeffs = [a0, a1, a2, ...] and y = a0 + a1*x + a2*x^2 + ...
 function evalPoly(coeffs, x) {
   let y = 0;
-  let xp = 1; // This tracks x^i as we move through the coefficients.
+  let xp = 1;
   for (let i = 0; i < coeffs.length; i++) {
     y += coeffs[i] * xp;
     xp *= x;
   }
   return y;
-}
-
-// Compute adjusted R^2 from R^2.
-// This penalizes using more polynomial terms (higher degree).
-function adjustedR2(r2, n, p) {
-  // If we do not have enough points, just return the normal R^2.
-  if (n <= p + 1) return r2;
-  return 1 - (1 - r2) * ((n - 1) / (n - p - 1));
-}
-
-// Fit a polynomial regression to y-values using x = 0..n-1.
-// Returns fitted curve values (yHat), a "next" projected value, and fit stats.
-function polyRegression(yVals, degree = 2) {
-  const n = yVals.length;
-  if (n < 2) return null;
-
-  // Keep the degree safe so we do not try to fit more terms than points allow.
-  const d = Math.max(1, Math.min(degree, n - 1));
-  const m = d + 1; // Number of coefficients.
-
-  // x-values are just the index positions of the points.
-  const xVals = Array.from({ length: n }, (_, i) => i);
-
-  // Build the normal equation system (X^T X) * c = (X^T y).
-  const XtX = Array.from({ length: m }, () => Array(m).fill(0));
-  const Xty = Array(m).fill(0);
-
-  for (let i = 0; i < n; i++) {
-    const x = xVals[i];
-
-    // Precompute powers of x up to 2*d to fill XtX efficiently.
-    const pow = Array(2 * d + 1).fill(0);
-    pow[0] = 1;
-    for (let k = 1; k < pow.length; k++) pow[k] = pow[k - 1] * x;
-
-    // Accumulate sums needed for XtX and Xty.
-    for (let r = 0; r < m; r++) {
-      for (let c = 0; c < m; c++) {
-        XtX[r][c] += pow[r + c];
-      }
-      Xty[r] += yVals[i] * pow[r];
-    }
-  }
-
-  // Solve for polynomial coefficients.
-  const coeffs = solveLinearSystem(XtX, Xty);
-  if (!coeffs) return null;
-
-  // yHat is the fitted trend value at each original x position.
-  const yHat = xVals.map((x) => evalPoly(coeffs, x));
-
-  // next is the fitted value one step beyond the last point (x = n).
-  const next = evalPoly(coeffs, n);
-
-  // Compute R^2 and adjusted R^2 to estimate how well the curve fits the data.
-  const yMean = yVals.reduce((a, b) => a + b, 0) / n;
-  const ssTot = yVals.reduce((acc, y) => acc + (y - yMean) ** 2, 0);
-  const ssRes = yVals.reduce((acc, y, i) => acc + (y - yHat[i]) ** 2, 0);
-  const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
-  const adjR2 = adjustedR2(r2, n, d);
-
-  // instantSlope is the derivative of the polynomial at the last x point.
-  const xLast = n - 1;
-  let instantSlope = 0;
-  for (let k = 1; k < coeffs.length; k++) {
-    instantSlope += k * coeffs[k] * Math.pow(xLast, k - 1);
-  }
-
-  return { coeffs, yHat, next, r2, adjR2, degree: d, instantSlope };
 }
 
 // Format the x-axis label.
@@ -168,7 +102,7 @@ function formatCurrency(v, currency = "EUR") {
   }).format(Number(v));
 }
 
-// Turn adjusted R^2 into a simple confidence label.
+// Turn a score into a simple confidence label.
 function confidenceLabel(score) {
   if (score >= 0.7) return "High";
   if (score >= 0.4) return "Medium";
@@ -224,29 +158,78 @@ function StatCard({ title, value, subValue, icon, accent }) {
   );
 }
 
+/**
+ * Pick 5 points from up to 30 rows.
+ * Strategy: evenly spaced across time (covers the full window).
+ */
+function pick5EvenlyFrom30(rows) {
+  const valid = (Array.isArray(rows) ? rows : [])
+    .map((r, i) => ({ ...r, __i: i })) // store original index (0..29)
+    .filter((r) => typeof r?.close === "number" && Number.isFinite(r.close));
+
+  if (valid.length <= 5) return valid;
+
+  // Evenly spaced indices across the valid array (not necessarily every day if some rows invalid).
+  const idxs = [0, 1, 2, 3, 4].map((k) =>
+    Math.round((k * (valid.length - 1)) / 4)
+  );
+
+  // Unique + sorted
+  const uniqIdxs = Array.from(new Set(idxs)).sort((a, b) => a - b);
+
+  // If duplicates caused fewer than 5, fill from the end backwards.
+  const filled = [...uniqIdxs];
+  let cursor = valid.length - 1;
+  while (filled.length < 5 && cursor >= 0) {
+    if (!filled.includes(cursor)) filled.push(cursor);
+    cursor--;
+  }
+  filled.sort((a, b) => a - b);
+
+  return filled.slice(0, 5).map((i) => valid[i]);
+}
+
+/**
+ * Polynomial interpolation through N points (exact fit):
+ * With 5 points -> degree 4 polynomial -> 5 coefficients.
+ *
+ * Builds Vandermonde matrix:
+ *   A[i][j] = x_i^j
+ * and solves A * coeffs = y
+ */
+function polyInterpolate(xVals, yVals) {
+  const n = xVals.length;
+  if (n < 2 || yVals.length !== n) return null;
+
+  const A = Array.from({ length: n }, () => Array(n).fill(0));
+
+  for (let i = 0; i < n; i++) {
+    let xp = 1;
+    for (let j = 0; j < n; j++) {
+      A[i][j] = xp;
+      xp *= xVals[i];
+    }
+  }
+
+  const coeffs = solveLinearSystem(A, yVals);
+  if (!coeffs) return null;
+
+  return { coeffs };
+}
+
 // Popup component that loads price history and renders the chart + stats.
 export default function DisplayChartPopUP({ open, setOpen, asset }) {
-  // Tracks request state for fetching price history.
   const [loading, setLoading] = useState(false);
-
-  // Stores a message when the API fails or the network errors.
   const [err, setErr] = useState("");
-
-  // Holds the raw rows returned from the API.
   const [rows, setRows] = useState([]);
 
   // How many days of history to request from the API.
   const DAYS = 30;
 
-  // Degree used for the polynomial trend line.
-  const POLY_DEGREE = 2;
-
-  // Fetch data when the dialog opens and have an asset id.
   useEffect(() => {
-    let mounted = true; // Prevent state updates after unmount.
+    let mounted = true;
 
     async function load() {
-      // Do not load unless popup is open and the asset has an id.
       if (!open || !asset?.assetRefId) return;
 
       setErr("");
@@ -254,76 +237,91 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
 
       try {
         const { res, data } = await getLastPriceHistory(asset.assetRefId, DAYS);
-
-        // If component unmounted during fetch, stop here.
         if (!mounted) return;
 
-        // Handle API errors.
         if (!res.ok) {
           setErr(data?.error || "Failed to load price history.");
           setRows([]);
           return;
         }
 
-        // Store valid rows or empty array if the shape is unexpected.
         setRows(Array.isArray(data?.rows) ? data.rows : []);
       } catch {
-        // Handle network or errors.
         if (mounted) {
           setErr("Network error occurred.");
           setRows([]);
         }
       } finally {
-        // Finish loading state if still mounted.
         if (mounted) setLoading(false);
       }
     }
 
     load();
 
-    // Cleanup runs when dependencies change or component unmounts.
     return () => {
       mounted = false;
     };
   }, [open, asset?.assetRefId]);
 
-  // Compute chart data and stats from rows.
+  // Compute chart data and stats using 5 chosen points (from 30).
   const computed = useMemo(() => {
-    // Extract close prices and keep only valid numbers.
-    const closes = rows
-      .map((r) => r?.close)
-      .filter((v) => typeof v === "number" && Number.isFinite(v));
+    const picked5 = pick5EvenlyFrom30(rows);
 
-    // Need enough points to fit a curve.
-    if (closes.length < 3) return null;
+    // Need exactly 5 points for "5 unknowns" logic (degree 4).
+    if (picked5.length < 5) return null;
 
-    // Fit the polynomial and get trend values.
-    const fit = polyRegression(closes, POLY_DEGREE);
+    // Use original indices (__i) as x-values to preserve spacing.
+    const xVals = picked5.map((r) => r.__i);
+    const yVals = picked5.map((r) => r.close);
+
+    const fit = polyInterpolate(xVals, yVals);
     if (!fit) return null;
 
-    const { yHat, next, adjR2, instantSlope } = fit;
+    const { coeffs } = fit;
 
-    // Build the chart data array used by Recharts.
-    const chartData = rows.map((r, i) => ({
+    // Build chart data: trend is the interpolated polynomial at each chosen x.
+    const chartData = picked5.map((r) => ({
       date: r.date,
       close: r.close,
-      trend: yHat[i],
+      trend: evalPoly(coeffs, r.__i),
     }));
 
-    // Add one extra point to show the projected next value.
+    // Forecast one day beyond the last selected index.
+    const lastX = xVals[xVals.length - 1];
+    const nextX = lastX + 1;
+    const next = evalPoly(coeffs, nextX);
+
     chartData.push({ date: "Next", close: next, trend: next });
 
-    // Compare next projected value to the last real close.
-    const lastClose = closes[closes.length - 1];
+    const lastClose = yVals[yVals.length - 1];
     const delta = next - lastClose;
+
+    // Derivative at lastX (slope at the latest point).
+    let instantSlope = 0;
+    for (let k = 1; k < coeffs.length; k++) {
+      instantSlope += k * coeffs[k] * Math.pow(lastX, k - 1);
+    }
+
+    // Reliability proxy: compare forecast jump to average move between the 5 points.
+    const absMoves = [];
+    for (let i = 1; i < yVals.length; i++) absMoves.push(Math.abs(yVals[i] - yVals[i - 1]));
+    const avgMove = absMoves.length
+      ? absMoves.reduce((a, b) => a + b, 0) / absMoves.length
+      : 0;
+
+    const jump = Math.abs(next - lastClose);
+    const stabilityScore = avgMove > 0 ? Math.max(0, 1 - jump / (3 * avgMove)) : 0.5;
 
     return {
       chartData,
       next,
       lastClose,
       delta,
-      adjR2,
       instantSlope,
+      stabilityScore,
+      // Useful for debugging if needed:
+      pickedIdxs: xVals,
+      coeffs,
     };
   }, [rows]);
 
@@ -345,8 +343,7 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
                     {asset?.symbol} Performance
                   </Dialog.Title>
                   <Text color="fg.muted">
-                    {asset?.name || "Price Forecast"} • Last {DAYS} days • Poly(
-                    {POLY_DEGREE})
+                    {asset?.name || "Price Forecast"} • Last {DAYS} days
                   </Text>
                 </Stack>
 
@@ -363,28 +360,26 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
                   <Text color="fg.muted">Generating chart…</Text>
                 </Stack>
               ) : err ? (
-                // Show error message when loading fails.
                 <Box textAlign="center" py={20}>
                   <Text color="fg.error" fontWeight="700">
                     {err}
                   </Text>
                 </Box>
               ) : rows.length > 0 && computed ? (
-                // Show stats and chart when data is available.
                 <Stack gap={6}>
                   <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
                     <StatCard
                       title="Market Trend"
                       value={computed.instantSlope > 0 ? "Upward" : "Downward"}
-                      subValue="Momentum at latest point"
+                      subValue="Slope at latest point"
                       icon={TrendingUp}
                       accent={computed.instantSlope > 0 ? "success" : "danger"}
                     />
 
                     <StatCard
                       title="Reliability"
-                      value={confidenceLabel(computed.adjR2)}
-                      subValue={`Adjusted R²: ${computed.adjR2.toFixed(2)}`}
+                      value={confidenceLabel(computed.stabilityScore)}
+                      subValue={`Stability score: ${computed.stabilityScore.toFixed(2)}`}
                       icon={ShieldCheck}
                       accent="blue.500"
                     />
@@ -485,24 +480,6 @@ export default function DisplayChartPopUP({ open, setOpen, asset }) {
                           stroke="none"
                           fill="url(#closeFill)"
                           activeDot={false}
-                        />
-
-                        <Line
-                          type="monotone"
-                          dataKey="close"
-                          stroke="var(--chakra-colors-cyan-500)"
-                          strokeWidth={3}
-                          dot={false}
-                        />
-
-                        <Line
-                          type="monotone"
-                          dataKey="trend"
-                          stroke="var(--chakra-colors-fg-muted)"
-                          strokeDasharray="5 5"
-                          strokeWidth={2}
-                          dot={false}
-                          opacity={0.4}
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
