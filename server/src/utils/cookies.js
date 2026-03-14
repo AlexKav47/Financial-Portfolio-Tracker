@@ -5,8 +5,7 @@ export function getCookieOptions() {
   const secure = sameSite === "none" ? true : isProd;
 
   return {
-    httpOnly: true,
-    secure,
+    secure: true,
     sameSite, 
     path: "/",
   };

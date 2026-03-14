@@ -26,7 +26,6 @@ function getReqMeta(req) {
 export async function register(req, res) {
   const { email, password } = req.body || {};
   const emailLower = normalizeEmail(email);
-
   if (!emailLower || !password) {
     return res.status(400).json({ error: "Email and password are required" });
   }
@@ -42,7 +41,7 @@ export async function register(req, res) {
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await User.create({
-    emailLower,
+	  emailLower: email,
     passwordHash,
     // Start everyone off on light mode by default
     settings: { theme: "light", baseCurrency: "EUR", currencySymbol: "€" },

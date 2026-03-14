@@ -17,7 +17,6 @@ export async function createHolding(req, res) {
   if (!symbol || typeof symbol !== "string") {
     return res.status(400).json({ error: "symbol is required" });
   }
-
   const q = Number(quantity);
   const p = Number(avgBuyPrice);
 

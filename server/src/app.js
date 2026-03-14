@@ -51,8 +51,8 @@ export function createApp() {
   app.use(cookieParser());
 
   // NoSQL injection + XSS input sanitization
-  app.use(mongoSanitize());
-  app.use(xss());
+  //app.use(mongoSanitize());
+  //app.use(xss());
 
   // Rate limiting (global + tighter on auth)
   app.use(
@@ -76,7 +76,7 @@ export function createApp() {
 
   // CORS hardening
   const allowedOrigins = parseOrigins(
-    process.env.CLIENT_ORIGIN || "https://alexkav47.github.io"
+    process.env.CLIENT_ORIGIN || "https://alexkav47.github.io" || "http://localhost:5173"
   );
 
   app.use(
@@ -94,8 +94,9 @@ export function createApp() {
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
     })
-  );
+);
 
+  app.get("/api/health", (req, res) => res.json({ ok: true }));
   app.get("/health", (req, res) => res.json({ ok: true }));
 
   app.use("/api/auth", authRoutes);
@@ -126,3 +127,4 @@ export function createApp() {
 
   return app;
 }
+  

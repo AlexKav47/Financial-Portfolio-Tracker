@@ -98,7 +98,7 @@ export default function Hero() {
             </Box>
             <Stack spacing={0} lineHeight="1.05">
               <Text fontWeight="900" letterSpacing="-0.8px">
-                Financial Portfolio Tracker
+               Bloom View
               </Text>
               <Text fontSize="12px" color={T.text2} fontWeight="600">
                 Final Year Project
@@ -253,7 +253,7 @@ export default function Hero() {
                     <Separator my={4} borderColor={T.stroke} />
 
                     <SimpleGrid columns={2} spacing={3}>
-                      <StatPill label="IRR" value="11.3%" accent={T.brand1} />
+                      <StatPill label="Total Return %" value="11.3%" accent={T.brand1} />
                       <StatPill label="Passive" value="€92/mo" accent={T.brand0} />
                       <StatPill label="Volatility" value="Med" accent={T.warn} />
                       <StatPill label="Holdings" value="27" accent={T.ok} />
