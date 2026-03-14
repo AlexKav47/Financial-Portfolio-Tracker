@@ -1,4 +1,4 @@
-# Financial Portfolio Tracker
+# Financial Portfolio Tracker "Bloom View"
 
 A full-stack portfolio dashboard for beginner Irish investors: unified holdings, allocation breakdown, KPIs, rolling 30-day price history, and an income tracker dividends and staking. 
 
