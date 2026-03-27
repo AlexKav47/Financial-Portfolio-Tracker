@@ -1,6 +1,6 @@
 # Financial Portfolio Tracker "Bloom View"
 
-A full-stack portfolio dashboard for beginner Irish investors: unified holdings, allocation breakdown, KPIs, rolling 30-day price history, and an income tracker dividends and staking. 
+Bloom View is a full stack solution created to simplify portfolio tracking for new to intermediate investors. The system focuses on clear monitoring, using a KPI driven dashbaord and interactive visualisations to transform raw financial data into actionable insights with a focus on educational framework to empower users to learn and make more informed decisions.
 
 ## Features
 
