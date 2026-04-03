@@ -13,6 +13,7 @@ Bloom View is a full stack solution created to simplify portfolio tracking for n
 ### Holdings & assets
 - Add/delete holdings for stocks and crypto
 - Asset master lookup for symbol/name/type
+
 - LatestPrice + PriceHistory persistence
 - Rolling window retention by pruneing old history
 
@@ -32,3 +33,11 @@ Bloom View is a full stack solution created to simplify portfolio tracking for n
 **Backend:** Node.js + Express 
 **Database:** MongoDB Atlas  
 **Market data:** Stooq for stocks and Yahoo Finance for crypto
+<div align="center">
+  <h3>Click Below For The Showcase</h3>
+
+  [![Alt text](https://img.youtube.com/vi/BhOQtneWaSI/0.jpg)](https://youtu.be/BhOQtneWaSI)
+
+<img width="950" height="1400" alt="Untitled design" src="https://github.com/user-attachments/assets/a825eee7-b94b-41ea-a416-03813753caa2" />
+
+</div>
