@@ -39,7 +39,6 @@ function isoMinusDays(isoDate, days) {
 
 /**
  * Stooq daily CSV endpoint.
- * NOTE: daysBack is CALENDAR days. Stocks will only include trading days.
  */
 function stooqCsvUrl(stooqSymbol, daysBack) {
   const today = new Date();
@@ -156,20 +155,18 @@ async function prunePriceHistoryByCount(assetId, keepCount = 30) {
 }
 
 /**
- * ✅ Refresh ONE asset (use this for initial update when user adds asset)
- *
  * Stocks:
- * - Fetch enough CALENDAR days to cover at least 30 trading days (default 70).
- * - After upsert, prune to 30 newest rows (30 trading days).
+ * - Fetch enough CALENDAR days to cover at least 30 trading days 
+ * - After upsert, prune to 30 newest rows
  *
  * Crypto:
- * - Fetch last 30 calendar days (or whatever your Yahoo function returns for that window).
- * - After upsert, prune by date window (30 calendar days).
+ * - Fetch last 30 calendar days
+ * - After upsert, prune by date window
  */
 export async function refreshSingleAsset(
   assetRefId,
   {
-    stockCalendarBackfillDays = 70, // ✅ enough calendar days to cover 30 trading days reliably
+    stockCalendarBackfillDays = 70, 
     cryptoCalendarBackfillDays = 30,
   } = {}
 ) {
@@ -201,8 +198,6 @@ export async function refreshSingleAsset(
     const yahooSymbol = asset.providerIds?.yahooSymbol;
     if (!yahooSymbol) throw new Error("Missing providerIds.yahooSymbol (e.g. BTC-USD)");
 
-    // NOTE: your yahoo function currently uses range=50d internally.
-    // If you update it to accept daysBack, pass cryptoCalendarBackfillDays here.
     rows = await fetchYahooCryptoDailyHistory(yahooSymbol);
     if (!rows.length) throw new Error("Yahoo history returned no rows");
 
@@ -224,9 +219,9 @@ export async function refreshSingleAsset(
     ordered: false,
   });
 
-  // ✅ Rolling window enforcement
-  // Stocks: keep 30 TRADING days (30 newest rows)
-  // Crypto: keep 30 CALENDAR days (date window)
+  
+  // Stocks: keep 30 TRADING days 
+  // Crypto: keep 30 CALENDAR days
   if (asset.type === "stock") {
     await prunePriceHistoryByCount(asset._id, 30);
   } else {
@@ -246,7 +241,7 @@ export async function refreshSingleAsset(
 }
 
 /**
- * ✅ Refresh ALL owned assets (batch job)
+ * Refresh ALL owned assets 
  */
 export async function refreshOwnedAssetsBatch({
   sleepMs = 1000,
