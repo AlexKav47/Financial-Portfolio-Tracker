@@ -47,7 +47,6 @@ export async function register(req, res) {
     settings: { theme: "light", baseCurrency: "EUR", currencySymbol: "€" },
   });
 
-  // Not doing an auto-login here to keep the registration flow separate
   return res.status(201).json({ ok: true, userId: user._id.toString() });
 }
 
@@ -71,7 +70,6 @@ export async function login(req, res) {
 
   const { userAgent, ip } = getReqMeta(req);
 
-  // We store the hash of the refresh token, not the token itself for safety 
   await RefreshToken.create({
     userId: user._id,
     tokenHash: sha256(refreshToken),

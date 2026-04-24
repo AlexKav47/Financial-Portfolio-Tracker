@@ -117,7 +117,7 @@ export async function summary(req, res) {
     .sort((a, b) => b.value - a.value);
 
   const allocationRaw = perAssetSorted.map((a) => ({
-    name: a.symbol,          // short label for chart slices
+    name: a.symbol,         
     fullName: a.name,        
     type: a.type,
     value: round2(a.value),
