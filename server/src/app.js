@@ -18,8 +18,6 @@ import priceHistoryRoutes from "./routes/pricehistory.routes.js";
 import incomeRoutes from "./routes/income.routes.js";
 
 function parseOrigins(envVal) {
-  // CLIENT_ORIGIN can be a single origin or comma-separated list
-  // e.g. "http://localhost:5173,https://app.yoursite.com"
   return String(envVal || "")
     .split(",")
     .map((s) => s.trim())
@@ -29,8 +27,6 @@ function parseOrigins(envVal) {
 export function createApp() {
   const app = express();
 
-  // If deploying behind a reverse proxy (Render/Heroku/Nginx), enable this:
-  // Required for correct req.ip and secure cookies behind proxy.
   if (process.env.NODE_ENV === "production") {
     app.set("trust proxy", 1);
   }
@@ -41,8 +37,7 @@ export function createApp() {
   // Security headers
   app.use(
     helmet({
-      // If you later add a CSP, do it here.
-      contentSecurityPolicy: false, // keep off until you’re ready to tune it
+      contentSecurityPolicy: false, 
     })
   );
 
@@ -58,7 +53,7 @@ export function createApp() {
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 300, // adjust to your needs
+      max: 300, 
       standardHeaders: true,
       legacyHeaders: false,
     })
