@@ -82,7 +82,7 @@ export default function Income() {
 
     if (dashRes.res.ok) {
       const d = dashRes.data;
-      // We need the total portfolio value to calculate the % yield 
+      // Total portfolio value to calculate the % yield 
       const total = d?.kpis?.value || d?.groups?.total?.value || 0;
       setPortfolioTotal(total);
     }
