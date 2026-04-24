@@ -6,7 +6,7 @@ let mongod = null;
 export async function connectDb() {
   let uri = process.env.MONGODB_URI;
 
-  // If we are in development mode and no URI is provided
+  // If in development mode and no URI is provided
   if (process.env.NODE_ENV === "test" || !uri) {
     console.log("Local mode Starting In-Memory MongoDB");
     
@@ -27,7 +27,7 @@ export async function connectDb() {
   }
 }
 
-// Clean up function for when your app stops
+// Clean up function for when app stops
 export async function disconnectDb() {
   await mongoose.disconnect();
   if (mongod) {
