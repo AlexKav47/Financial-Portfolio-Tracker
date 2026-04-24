@@ -19,7 +19,7 @@ async function fetchSp100Tickers() {
     const response = await axios.get(url, { 
       timeout: 30_000,
       headers: {
-        'User-Agent': 'FinancialTrackerProject/1.0 (Contact: your-email@example.com)'
+        'User-Agent': 'FinancialTrackerProject/1.0 (Contact: my-email@example.com)'
       }
     });
 
@@ -105,7 +105,7 @@ async function run() {
     name: x.name,
     providerIds: {
       stooqSymbol: toStooqSymbol(x.symbol),
-      // URL for your 24-hour CSV job
+      // URL for 24-hour CSV job
       csvUrl: `https://stooq.com/q/d/l/?s=${toStooqSymbol(x.symbol)}&i=d`
     },
   }));
@@ -117,7 +117,7 @@ async function run() {
     symbol: x.symbol,
     name: x.name,
     providerIds: {
-      // Yahoo mapping for your 24-hour CSV job
+      // Yahoo mapping for 24-hour CSV job
       yahooSymbol: `${x.symbol}-USD`,
       csvUrl: `https://query1.finance.yahoo.com/v7/finance/download/${x.symbol}-USD?interval=1d&events=history`
     },
