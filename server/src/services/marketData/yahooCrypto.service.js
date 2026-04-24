@@ -10,7 +10,7 @@ function toISODateFromUnixSeconds(sec) {
 
 /**
  * Fetch daily OHLCV from Yahoo Finance chart endpoint for crypto tickers like BTC-USD.
- * We use range=max and interval=1d to get full daily history.
+ * Range=max and interval=1d to get full daily history.
  *
  * Output rows: { date, open, high, low, close, volume }
  */
