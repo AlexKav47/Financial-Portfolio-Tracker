@@ -36,7 +36,7 @@ Bloom View is a full stack solution created to simplify portfolio tracking for n
 <div align="center">
   <h3>Click Below For The Showcase</h3>
 
-  [![Alt text](https://img.youtube.com/vi/BhOQtneWaSI/0.jpg)](https://youtu.be/BhOQtneWaSI)
+  [![Alt text](https://img.youtube.com/vi/h4layW-7W1M/0.jpg)](https://youtu.be/h4layW-7W1M)
 
 <img width="950" height="1400" alt="Untitled design" src="https://github.com/user-attachments/assets/a825eee7-b94b-41ea-a416-03813753caa2" />
 
